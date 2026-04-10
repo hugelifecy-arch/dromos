@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
     supabase.from('subscriptions').select('tier'),
   ]);
 
-  const paidSubs = subStats?.filter((s) => s.tier !== 'free').length || 0;
+  const paidSubs = (subStats as { tier: string }[] | null)?.filter((s) => s.tier !== 'free').length || 0;
 
   const stats = [
     { label: 'Total Users', value: usersCount || 0, icon: Users, color: 'text-blue-400 bg-blue-400/10' },
