@@ -4,20 +4,13 @@ import { Users, Car, CreditCard, TrendingUp } from 'lucide-react';
 export default async function AdminDashboard() {
   const supabase = createClient();
 
-  // Fetch stats
-  const [
-    { count: usersCount },
-    { count: ridesCount },
-    { count: bookingsCount },
-    { data: subStats },
-  ] = await Promise.all([
-    supabase.from('profiles').select('*', { count: 'exact', head: true }),
-    supabase.from('rides').select('*', { count: 'exact', head: true }),
-    supabase.from('bookings').select('*', { count: 'exact', head: true }),
-    supabase.from('subscriptions').select('tier'),
-  ]);
+  // Fetch stats separately to avoid Promise.all type inference issues
+  const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+  const { count: ridesCount } = await supabase.from('rides').select('*', { count: 'exact', head: true });
+  const { count: bookingsCount } = await supabase.from('bookings').select('*', { count: 'exact', head: true });
+  const { data: subStats } = await supabase.from('subscriptions').select('tier');
 
-  const paidSubs = (subStats as { tier: string }[] | null)?.filter((s) => s.tier !== 'free').length || 0;
+  const paidSubs = subStats?.filter((s: any) => s.tier !== 'free').length || 0;
 
   const stats = [
     { label: 'Total Users', value: usersCount || 0, icon: Users, color: 'text-blue-400 bg-blue-400/10' },
@@ -29,7 +22,7 @@ export default async function AdminDashboard() {
   // Recent rides
   const { data: recentRides } = await supabase
     .from('rides')
-    .select('id, origin_address, destination_address, departure_time, status, driver:profiles!driver_id(full_name)')
+    .select('id, origin_address, destination_address, departure_time, status')
     .order('created_at', { ascending: false })
     .limit(10);
 
@@ -60,7 +53,6 @@ export default async function AdminDashboard() {
             <thead>
               <tr className="text-left text-surface-500 border-b border-surface-800">
                 <th className="px-4 py-3 font-medium">Route</th>
-                <th className="px-4 py-3 font-medium">Driver</th>
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
@@ -70,7 +62,6 @@ export default async function AdminDashboard() {
                   <td className="px-4 py-3">
                     {ride.origin_address} &rarr; {ride.destination_address}
                   </td>
-                  <td className="px-4 py-3">{ride.driver?.full_name || '-'}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       ride.status === 'upcoming' ? 'bg-blue-500/10 text-blue-400' :
@@ -85,7 +76,7 @@ export default async function AdminDashboard() {
               ))}
               {(!recentRides || recentRides.length === 0) && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-surface-500">No rides yet</td>
+                  <td colSpan={2} className="px-4 py-8 text-center text-surface-500">No rides yet</td>
                 </tr>
               )}
             </tbody>

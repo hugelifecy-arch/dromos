@@ -26,7 +26,7 @@ export default async function ProfilePage() {
 
   if (!profile) redirect('/auth/onboarding');
 
-  const tier = subscription?.tier || 'free';
+  const tier = (subscription?.tier || 'free') as 'free' | 'plus' | 'pro';
 
   const tierColors = {
     free: 'bg-surface-700 text-surface-300',

@@ -51,7 +51,7 @@ export default async function MessagesPage() {
         if (otherParticipant?.profile) {
           conversations.push({
             id: conv.id,
-            other_user: otherParticipant.profile as { full_name: string; avatar_url: string | null },
+            other_user: otherParticipant.profile as unknown as { full_name: string; avatar_url: string | null },
             last_message: lastMsg,
           });
         }
