@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createClient } from '@/lib/supabase-server';
 import { Heart, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';

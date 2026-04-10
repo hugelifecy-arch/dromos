@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createClient } from '@/lib/supabase-server';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft, MapPin, Clock, Users, Star, Luggage, MessageCircle } from 'lucide-react';

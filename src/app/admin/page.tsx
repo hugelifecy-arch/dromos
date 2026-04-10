@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createClient } from '@/lib/supabase-server';
 import { Users, Car, CreditCard, TrendingUp } from 'lucide-react';
 
