@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Airport Queue' };
 
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';

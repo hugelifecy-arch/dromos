@@ -1,0 +1,22 @@
+{
+  "name": "Dromos — Cyprus Taxi Marketplace",
+  "short_name": "Dromos",
+  "description": "Buy and sell empty taxi legs in Cyprus",
+  "start_url": "/app/feed",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

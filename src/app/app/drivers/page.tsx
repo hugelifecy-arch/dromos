@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Drivers' };
 
 import { createClient } from '@/lib/supabase-server';
 import { ArrowLeft, Search, MapPin, Star } from 'lucide-react';

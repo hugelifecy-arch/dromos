@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Feed' };
 
 import { createClient } from '@/lib/supabase-server';
 import { Bell, Search } from 'lucide-react';
