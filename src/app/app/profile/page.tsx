@@ -40,9 +40,9 @@ export default async function ProfilePage() {
     <div className="max-w-lg mx-auto">
       <header className="sticky top-0 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-4 py-3 z-40 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Profile</h1>
-        <button className="p-2 text-surface-400 hover:text-white transition-colors">
+        <Link href="/app/settings" className="p-2 text-surface-400 hover:text-white transition-colors">
           <Settings className="w-5 h-5" />
-        </button>
+        </Link>
       </header>
 
       {/* Profile card */}
