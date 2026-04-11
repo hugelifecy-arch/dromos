@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
-import { Star, Car, MapPin, Calendar, Settings, LogOut, CreditCard, Building2, TrendingUp } from 'lucide-react';
+import { Star, Car, MapPin, Calendar, Settings, LogOut, CreditCard, Building2, TrendingUp, Plane } from 'lucide-react';
 import { format } from 'date-fns';
 import { AVATAR_PLACEHOLDER } from '@/lib/constants';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
@@ -110,6 +110,10 @@ export default async function ProfilePage() {
         <Link href="/app/corporate" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-900 transition-colors text-surface-300">
           <Building2 className="w-5 h-5 text-surface-500" />
           <span>Corporate Account</span>
+        </Link>
+        <Link href="/app/flights" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-900 transition-colors text-surface-300">
+          <Plane className="w-5 h-5 text-surface-500" />
+          <span>Flight Tracker</span>
         </Link>
         <form action="/auth/logout" method="post">
           <button type="submit" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-900 transition-colors text-red-400 w-full text-left">

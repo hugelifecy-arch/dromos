@@ -36,7 +36,7 @@ export const ROUTES = {
   onboarding: '/auth/onboarding',
   pricing: '/pricing',
   feed: '/app/feed',
-  rides: '/app/flights',
+  rides: '/app/rides',
   post: '/app/post',
   messages: '/app/messages',
   profile: '/app/profile',
