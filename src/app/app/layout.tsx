@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import BottomNav from '@/components/ui/BottomNav';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
