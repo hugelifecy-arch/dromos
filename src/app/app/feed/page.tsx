@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase-server';
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart, MessageCircle, Bell } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { AVATAR_PLACEHOLDER, APP_NAME } from '@/lib/constants';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
@@ -25,7 +25,12 @@ export default async function FeedPage() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <header className="sticky top-0 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-4 py-3 z-40">
-        <h1 className="text-xl font-bold text-white">{APP_NAME}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-white">{APP_NAME}</h1>
+          <Link href="/app/notifications" className="p-1.5 text-surface-400 hover:text-white transition-colors relative">
+            <Bell className="w-5 h-5" />
+          </Link>
+        </div>
       </header>
 
       {/* Create post prompt */}

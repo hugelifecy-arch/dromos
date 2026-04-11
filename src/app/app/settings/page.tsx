@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, LogOut, Trash2 } from 'lucide-react';
+import { ArrowLeft, LogOut, Trash2, Bell } from 'lucide-react';
 import Link from 'next/link';
 import SettingsClient from './client';
 
@@ -236,6 +236,18 @@ export default async function SettingsPage() {
           <span className="mt-4 inline-block text-sm text-surface-500 font-medium">
             Coming soon
           </span>
+        </section>
+
+        {/* Notifications */}
+        <section className="p-6 border-b border-surface-800">
+          <h2 className="text-lg font-semibold text-white mb-4">Notifications</h2>
+          <Link
+            href="/app/notifications/preferences"
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-surface-900 hover:bg-surface-800 transition-colors text-surface-300 hover:text-white"
+          >
+            <Bell className="w-5 h-5" />
+            <span>Notification Preferences</span>
+          </Link>
         </section>
 
         {/* Account */}

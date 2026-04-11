@@ -46,6 +46,8 @@ export const ROUTES = {
   airport: '/app/airport',
   fleet: '/app/fleet',
   corporate: '/app/corporate',
+  notifications: '/app/notifications',
+  notificationPreferences: '/app/notifications/preferences',
   admin: '/admin',
 } as const;
 

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { Clock } from 'lucide-react';
 import type { EmptyLeg } from '@/lib/types/empty-leg';
 import LegCard from '@/components/ui/LegCard';
+import { useRealtimeLegs } from '@/lib/hooks/useRealtimeLegs';
 
 type SortOption = 'soonest' | 'latest' | 'lowest-price' | 'highest-price';
 type LegTypeFilter = 'all' | 'airport' | 'long_distance' | 'standard' | 'repositioning';
@@ -116,6 +117,13 @@ export default function RidesPage() {
   useEffect(() => {
     fetchLegs(filters);
   }, [filters, fetchLegs]);
+
+  // Real-time: refresh list when legs change
+  useRealtimeLegs(
+    useCallback(() => {
+      fetchLegs(filters);
+    }, [fetchLegs, filters])
+  );
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
