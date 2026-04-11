@@ -88,6 +88,22 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
     .eq('conversation_id', id)
     .eq('user_id', user.id);
 
+  // Normalize messages: Supabase joins return sender as array, ChatThread expects object|null
+  const normalizedMessages = (initialMessages || []).map((msg) => {
+    const raw = msg as Record<string, unknown>;
+    const sender = raw.sender;
+    return {
+      id: msg.id as string,
+      conversation_id: msg.conversation_id as string,
+      sender_id: msg.sender_id as string,
+      body: msg.body as string,
+      message_type: (msg.message_type || 'text') as string,
+      metadata: (msg.metadata || {}) as Record<string, unknown>,
+      created_at: msg.created_at as string,
+      sender: Array.isArray(sender) ? sender[0] || null : sender || null,
+    };
+  });
+
   const STATUS_BADGE: Record<string, string> = {
     open: 'bg-green-500/10 text-green-400',
     claimed: 'bg-yellow-500/10 text-yellow-400',
@@ -141,7 +157,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
       <ChatThread
         conversationId={id}
         currentUserId={user.id}
-        initialMessages={initialMessages || []}
+        initialMessages={normalizedMessages}
         legContext={legContext}
         pendingOffers={pendingOffers || []}
       />
