@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { Clock } from 'lucide-react';
-import { debounce } from 'lodash-es';
 import type { EmptyLeg } from '@/lib/types/empty-leg';
 import LegCard from '@/components/ui/LegCard';
 
@@ -31,8 +30,10 @@ export default function RidesPage() {
   });
 
   // Debounced fetch function
-  const fetchLegs = useCallback(
-    debounce(async (currentFilters: FilterState) => {
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+  const fetchLegs = useCallback((currentFilters: FilterState) => {
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(async () => {
       setLoading(true);
       try {
         let query = supabase
@@ -108,9 +109,8 @@ export default function RidesPage() {
       } finally {
         setLoading(false);
       }
-    }, 500),
-    [supabase]
-  );
+    }, 500);
+  }, [supabase]);
 
   // Trigger fetch on filter changes
   useEffect(() => {
