@@ -7,7 +7,7 @@ import { ROUTES } from '@/lib/constants';
 
 const navItems = [
   { href: ROUTES.feed, icon: Home, label: 'Feed' },
-  { href: ROUTES.rides, icon: Car, label: 'Rides' },
+  { href: ROUTES.rides, icon: Car, label: 'Legs' },
   { href: ROUTES.post, icon: PlusCircle, label: 'Post' },
   { href: ROUTES.messages, icon: MessageCircle, label: 'Messages' },
   { href: ROUTES.profile, icon: User, label: 'Profile' },

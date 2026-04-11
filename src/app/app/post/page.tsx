@@ -5,21 +5,31 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import { ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
+import type { EmptyLeg } from '@/lib/types/empty-leg';
 
 export default function PostPage() {
   const router = useRouter();
   const supabase = createClient();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<'post' | 'ride'>('post');
+  const [tab, setTab] = useState<'post' | 'leg'>('post');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Ride form state
-  const [rideForm, setRideForm] = useState({
-    origin_address: '',
-    destination_address: '',
-    departure_time: '',
-    seats_total: 3,
-    price_per_seat: '',
+  // Empty leg form state
+  const [legForm, setLegForm] = useState({
+    origin: '',
+    destination: '',
+    leg_type: 'standard' as const,
+    departure_datetime: '',
+    is_time_flexible: false,
+    passenger_capacity: 1,
+    luggage_capacity: 'medium' as const,
+    asking_price: '',
+    has_passenger: false,
+    passenger_count: '',
+    passenger_name: '',
+    passenger_phone: '',
+    special_requirements: '',
     notes: '',
   });
 
@@ -36,34 +46,74 @@ export default function PostPage() {
     router.push('/app/feed');
   }
 
-  async function handleRide(e: React.FormEvent) {
+  async function handleLeg(e: React.FormEvent) {
     e.preventDefault();
+    setValidationError(null);
     setLoading(true);
+
+    // Validation
+    if (legForm.origin.trim() === legForm.destination.trim()) {
+      setValidationError('Origin and destination cannot be the same');
+      setLoading(false);
+      return;
+    }
+
+    const departure = new Date(legForm.departure_datetime);
+    const now = new Date();
+    const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+    if (departure < thirtyMinutesFromNow && !legForm.is_time_flexible) {
+      setValidationError('Departure time must be at least 30 minutes in the future');
+      setLoading(false);
+      return;
+    }
+
+    const askingPrice = parseFloat(legForm.asking_price);
+    if (isNaN(askingPrice) || askingPrice <= 0) {
+      setValidationError('Asking price must be greater than 0');
+      setLoading(false);
+      return;
+    }
+
+    if (legForm.has_passenger && !legForm.passenger_count) {
+      setValidationError('Passenger count is required when "I already have a passenger" is selected');
+      setLoading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
-    const { error } = await supabase.from('rides').insert({
-      driver_id: user.id,
-      origin_address: rideForm.origin_address,
-      origin_lat: 37.9838,
-      origin_lng: 23.7275,
-      destination_address: rideForm.destination_address,
-      destination_lat: 40.6401,
-      destination_lng: 22.9444,
-      departure_time: new Date(rideForm.departure_time).toISOString(),
-      seats_total: rideForm.seats_total,
-      seats_available: rideForm.seats_total,
-      price_per_seat: parseFloat(rideForm.price_per_seat),
-      notes: rideForm.notes || null,
+    // Prepare leg data
+    const legData: Partial<EmptyLeg> = {
+      seller_id: user.id,
+      origin: legForm.origin,
+      destination: legForm.destination,
+      leg_type: legForm.leg_type,
+      departure_datetime: new Date(legForm.departure_datetime).toISOString(),
+      is_time_flexible: legForm.is_time_flexible,
+      passenger_capacity: parseInt(legForm.passenger_capacity),
+      luggage_capacity: legForm.luggage_capacity,
+      asking_price: askingPrice,
       currency: 'EUR',
-      is_recurring: false,
-      recurrence_days: [],
-      allow_detours: false,
-      max_detour_minutes: 15,
-      luggage_size: 'medium',
-    });
+      has_passenger: legForm.has_passenger,
+      passenger_count: legForm.has_passenger ? parseInt(legForm.passenger_count) : null,
+      passenger_name: legForm.has_passenger && legForm.passenger_name ? legForm.passenger_name : null,
+      passenger_phone: legForm.has_passenger && legForm.passenger_phone ? legForm.passenger_phone : null,
+      special_requirements: legForm.has_passenger && legForm.special_requirements ? legForm.special_requirements : null,
+      notes: legForm.notes || null,
+      status: 'open',
+    };
 
-    if (!error) router.push('/app/feed');
+    const { error } = await supabase.from('empty_legs').insert(legData);
+
+    if (!error) {
+      router.push('/app/feed');
+    } else {
+      setValidationError('Failed to create empty leg. Please try again.');
+    }
     setLoading(false);
   }
 
@@ -85,10 +135,10 @@ export default function PostPage() {
           Feed Post
         </button>
         <button
-          onClick={() => setTab('ride')}
-          className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'ride' ? 'text-white border-b-2 border-brand-500' : 'text-surface-500'}`}
+          onClick={() => setTab('leg')}
+          className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'leg' ? 'text-white border-b-2 border-brand-500' : 'text-surface-500'}`}
         >
-          Offer a Ride
+          Post a Leg
         </button>
       </div>
 
@@ -115,82 +165,216 @@ export default function PostPage() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleRide} className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm text-surface-400 mb-1">From</label>
-            <input
-              type="text"
-              required
-              value={rideForm.origin_address}
-              onChange={(e) => setRideForm({ ...rideForm, origin_address: e.target.value })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-              placeholder="e.g. Athens, Syntagma"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-surface-400 mb-1">To</label>
-            <input
-              type="text"
-              required
-              value={rideForm.destination_address}
-              onChange={(e) => setRideForm({ ...rideForm, destination_address: e.target.value })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-              placeholder="e.g. Thessaloniki, Center"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-surface-400 mb-1">Departure</label>
-            <input
-              type="datetime-local"
-              required
-              value={rideForm.departure_time}
-              onChange={(e) => setRideForm({ ...rideForm, departure_time: e.target.value })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-surface-400 mb-1">Seats</label>
-              <select
-                value={rideForm.seats_total}
-                onChange={(e) => setRideForm({ ...rideForm, seats_total: parseInt(e.target.value) })}
-                className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
+        <form onSubmit={handleLeg} className="p-4 space-y-4">
+          {validationError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-sm text-red-400">
+              {validationError}
             </div>
-            <div>
-              <label className="block text-sm text-surface-400 mb-1">Price per seat</label>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Origin <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={legForm.origin}
+              onChange={(e) => setLegForm({ ...legForm, origin: e.target.value })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="e.g. Larnaca Airport (LCA)"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Destination <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={legForm.destination}
+              onChange={(e) => setLegForm({ ...legForm, destination: e.target.value })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="e.g. Limassol, Old Port"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Leg Type <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={legForm.leg_type}
+              onChange={(e) => setLegForm({ ...legForm, leg_type: e.target.value as any })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="standard">Standard</option>
+              <option value="airport_inbound">Airport Inbound</option>
+              <option value="airport_outbound">Airport Outbound</option>
+              <option value="long_distance">Long Distance</option>
+              <option value="repositioning">Repositioning Only</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Departure <span className="text-red-400">*</span>
+            </label>
+            <div className="space-y-2">
               <input
-                type="number"
+                type="datetime-local"
                 required
-                min="2"
-                step="0.50"
-                value={rideForm.price_per_seat}
-                onChange={(e) => setRideForm({ ...rideForm, price_per_seat: e.target.value })}
+                value={legForm.departure_datetime}
+                onChange={(e) => setLegForm({ ...legForm, departure_datetime: e.target.value })}
                 className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="EUR"
               />
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={legForm.is_time_flexible}
+                  onChange={(e) => setLegForm({ ...legForm, is_time_flexible: e.target.checked })}
+                  className="w-4 h-4 bg-surface-800 border border-surface-700 rounded accent-brand-500"
+                />
+                <span className="text-sm text-surface-400">Flexible time (date only)</span>
+              </label>
             </div>
           </div>
+
           <div>
-            <label className="block text-sm text-surface-400 mb-1">Notes (optional)</label>
-            <textarea
-              value={rideForm.notes}
-              onChange={(e) => setRideForm({ ...rideForm, notes: e.target.value })}
-              rows={2}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-              placeholder="Any extra details..."
+            <label className="block text-sm font-medium text-white mb-1">
+              Seats Available <span className="text-red-400">*</span>
+            </label>
+            <p className="text-xs text-surface-400 mb-2">How many passengers can you take?</p>
+            <select
+              value={legForm.passenger_capacity}
+              onChange={(e) => setLegForm({ ...legForm, passenger_capacity: parseInt(e.target.value) })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <option key={n} value={n}>
+                  {n} seat{n !== 1 ? 's' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Luggage Capacity <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={legForm.luggage_capacity}
+              onChange={(e) => setLegForm({ ...legForm, luggage_capacity: e.target.value as any })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="none">None</option>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Asking Price (EUR) <span className="text-red-400">*</span>
+            </label>
+            <p className="text-xs text-surface-400 mb-2">Set your price. Buyers see this and decide to claim. You keep what you charge.</p>
+            <input
+              type="number"
+              required
+              min="1"
+              step="0.50"
+              value={legForm.asking_price}
+              onChange={(e) => setLegForm({ ...legForm, asking_price: e.target.value })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="0.00"
             />
           </div>
+
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={legForm.has_passenger}
+                  onChange={(e) => setLegForm({ ...legForm, has_passenger: e.target.checked })}
+                  className="w-4 h-4 bg-surface-800 border border-surface-700 rounded accent-brand-500"
+                />
+              </div>
+              <span className="text-sm font-medium text-white">I already have a passenger</span>
+            </label>
+          </div>
+
+          {legForm.has_passenger && (
+            <div className="space-y-4 bg-surface-800/50 border border-surface-700 rounded-xl p-4">
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Passenger Count <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="8"
+                  value={legForm.passenger_count}
+                  onChange={(e) => setLegForm({ ...legForm, passenger_count: e.target.value })}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  placeholder="Number of passengers"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">Passenger Name</label>
+                <input
+                  type="text"
+                  value={legForm.passenger_name}
+                  onChange={(e) => setLegForm({ ...legForm, passenger_name: e.target.value })}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  placeholder="Optional"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">Passenger Phone</label>
+                <input
+                  type="tel"
+                  value={legForm.passenger_phone}
+                  onChange={(e) => setLegForm({ ...legForm, passenger_phone: e.target.value })}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  placeholder="Optional"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">Special Requirements</label>
+                <textarea
+                  value={legForm.special_requirements}
+                  onChange={(e) => setLegForm({ ...legForm, special_requirements: e.target.value })}
+                  rows={2}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                  placeholder="e.g. wheelchair accessible, pet-friendly, etc."
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">Notes</label>
+            <textarea
+              value={legForm.notes}
+              onChange={(e) => setLegForm({ ...legForm, notes: e.target.value })}
+              rows={2}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+              placeholder="Any additional details..."
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
           >
-            {loading ? 'Publishing...' : 'Publish Ride'}
+            {loading ? 'Publishing...' : 'Post a Leg'}
           </button>
         </form>
       )}
