@@ -3,12 +3,12 @@ import { APP_NAME } from '@/lib/constants';
 import { ArrowRight, Shield, Users, Zap, Car, Plane, Building2 } from 'lucide-react';
 
 const features = [
-  { icon: Car, title: 'Share Rides', desc: 'Post or find rides to split costs and reduce traffic.' },
-  { icon: Users, title: 'Community', desc: 'Connect with trusted drivers and passengers near you.' },
-  { icon: Plane, title: 'Flight Sync', desc: 'Track flights and auto-coordinate airport pickups.' },
-  { icon: Shield, title: 'Verified Users', desc: 'Ratings, reviews, and verified profiles for safety.' },
-  { icon: Building2, title: 'Corporate', desc: 'Manage team rides with centralized billing.' },
-  { icon: Zap, title: 'Low Fees', desc: 'Starting at 3% commission with Pro. Keep more earnings.' },
+  { icon: Car, title: 'Sell Rides', desc: 'Post your empty leg. Set your price. Another driver fills the gap — you earn instead of burning fuel for nothing.' },
+  { icon: Users, title: 'Driver Network', desc: 'Every member is a licensed Cyprus taxi driver, verified before activation. No passengers, no amateurs, no public sign-ups.' },
+  { icon: Plane, title: 'Airport Queue', desc: 'Coordinate Larnaca (LCA) and Paphos (PFO) queue positions. Post your empty inbound or outbound airport leg.' },
+  { icon: Shield, title: 'Licensed Only', desc: 'Taxi licence verification is mandatory. The platform is a closed professional community.' },
+  { icon: Building2, title: 'Fleet Board', desc: 'Fleet operators post and manage legs for all their drivers from one dashboard. Pro-tier (future — inactive during beta).' },
+  { icon: Zap, title: 'Free During Beta', desc: 'Zero commission. Zero subscription. Full access. Early adopters shape the product before pricing is introduced.' },
 ];
 
 export default function LandingPage() {
@@ -30,10 +30,10 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-4 py-20 text-center">
         <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6 leading-tight">
-          Share the road,<br />share the cost
+          Going back empty?<br />Sell the leg.
         </h1>
         <p className="text-lg sm:text-xl text-surface-400 max-w-2xl mx-auto mb-8">
-          Connect with drivers and passengers heading your way. Save money, reduce traffic, meet great people.
+          The B2B marketplace for Cyprus taxi drivers to monetise empty legs between fares
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link
@@ -66,8 +66,8 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="border-t border-surface-800 py-16 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Ready to ride?</h2>
-        <p className="text-surface-400 mb-6">Join thousands sharing their commute across Greece.</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Built for Cyprus taxi drivers</h2>
+        <p className="text-surface-400 mb-6">Free during beta. Every verified driver gets full access.</p>
         <Link
           href="/auth/login"
           className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-medium px-8 py-3 rounded-xl transition-colors"

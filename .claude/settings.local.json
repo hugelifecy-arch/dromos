@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where npm:*)",
+      "Bash(where npx:*)",
+      "Bash(where stripe:*)",
+      "Bash(where node:*)",
+      "Bash(cmd.exe //c \"where node\")",
+      "Bash(cmd.exe //c \"node --version\")",
+      "Bash(cmd.exe //c \"where npm\")",
+      "Bash(cmd.exe //c \"npm --version\")",
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs\")",
+      "Bash(npm --version)",
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node -e \"console.log\\(require.resolve\\('next/dist/bin/next'\\)\\)\")",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" node_modules/.bin/vercel deploy --prod)",
+      "Bash(where vercel:*)",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" -e \"require\\('child_process'\\).execSync\\('npx vercel deploy --prod --yes', {stdio:'inherit', env:{...process.env, PATH:process.env.PATH+';C:\\\\\\\\\\\\\\\\Program Files\\\\\\\\\\\\\\\\nodejs'}}\\)\")",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" vercel deploy --prod --yes)",
+      "Bash('/c/Program Files/nodejs/npx.cmd' vercel deploy --prod --yes)",
+      "Bash('/c/Program Files/nodejs/npx.cmd' vercel env ls)",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" vercel env add NEXT_PUBLIC_SUPABASE_URL production preview development)",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" vercel env add NEXT_PUBLIC_SUPABASE_URL production)",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production)",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" vercel env add NEXT_PUBLIC_APP_URL production)",
+      "Bash(gh pr:*)",
+      "WebFetch(domain:github.com)",
+      "Bash('C:\\\\Program Files\\\\nodejs\\\\node.exe' node_modules/next/dist/bin/next build)",
+      "Bash(npm audit:*)"
+    ]
+  }
+}

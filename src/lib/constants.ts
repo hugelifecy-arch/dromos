@@ -1,5 +1,5 @@
 export const APP_NAME = 'Dromos';
-export const APP_DESCRIPTION = 'Share rides, save money, meet people.';
+export const APP_DESCRIPTION = 'The B2B marketplace for licensed Cyprus taxi drivers to buy and sell empty legs between fares.';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export const COMMISSION_RATES = {
@@ -20,8 +20,8 @@ export const STRIPE_PRICE_IDS = {
   pro_yearly: process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID || '',
 } as const;
 
-export const MAX_SEATS = 7;
-export const MIN_RIDE_PRICE = 2.0;
+export const MAX_SEATS = 8;
+export const MIN_RIDE_PRICE = 1.0;
 export const DEFAULT_CURRENCY = 'EUR';
 
 export const LUGGAGE_OPTIONS = [
@@ -33,15 +33,18 @@ export const LUGGAGE_OPTIONS = [
 export const ROUTES = {
   home: '/',
   login: '/auth/login',
+  register: '/auth/register',
   onboarding: '/auth/onboarding',
   pricing: '/pricing',
   feed: '/app/feed',
-  rides: '/app/flights',
+  rides: '/app/rides',
   post: '/app/post',
   messages: '/app/messages',
   profile: '/app/profile',
   earnings: '/app/earnings',
   upgrade: '/app/upgrade',
+  airport: '/app/airport',
+  fleet: '/app/fleet',
   corporate: '/app/corporate',
   admin: '/admin',
 } as const;
