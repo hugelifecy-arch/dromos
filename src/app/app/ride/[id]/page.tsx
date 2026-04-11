@@ -8,8 +8,9 @@ import { AVATAR_PLACEHOLDER } from '@/lib/constants';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
 import Link from 'next/link';
 
-export default async function RideDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient();
+export default async function RideDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth/login');
 
@@ -19,7 +20,7 @@ export default async function RideDetailPage({ params }: { params: { id: string 
       *,
       driver:profiles!driver_id(id, full_name, avatar_url, is_verified, rating_avg, rating_count, bio, car_make, car_model, car_color, car_plate)
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (!ride) notFound();
@@ -163,7 +164,7 @@ export default async function RideDetailPage({ params }: { params: { id: string 
         {!isDriver && !existingBooking && ride.seats_available > 0 && (
           <form action={async () => {
             'use server';
-            const supabase = createClient();
+            const supabase = await createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
             await supabase.from('bookings').insert({

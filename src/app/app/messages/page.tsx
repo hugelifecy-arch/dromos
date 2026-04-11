@@ -6,7 +6,7 @@ import { MessageCircle } from 'lucide-react';
 import { AVATAR_PLACEHOLDER } from '@/lib/constants';
 
 export default async function MessagesPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return null;

@@ -6,7 +6,7 @@ import { Building2, Users, Wallet } from 'lucide-react';
 import { AVATAR_PLACEHOLDER } from '@/lib/constants';
 
 export default async function CorporatePage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth/login');
 

@@ -8,7 +8,7 @@ import { COMMISSION_RATES } from '@/lib/constants';
 import type { SubscriptionTier } from '@/types/database';
 
 export default async function EarningsPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth/login');
 

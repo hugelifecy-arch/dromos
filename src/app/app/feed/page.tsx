@@ -8,7 +8,7 @@ import VerifiedBadge from '@/components/ui/VerifiedBadge';
 import Link from 'next/link';
 
 export default async function FeedPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: posts } = await supabase

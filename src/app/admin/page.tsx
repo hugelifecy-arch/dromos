@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase-server';
 import { Users, Car, CreditCard, TrendingUp } from 'lucide-react';
 
 export default async function AdminDashboard() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Fetch stats separately to avoid Promise.all type inference issues
   const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
