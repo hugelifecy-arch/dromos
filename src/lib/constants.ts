@@ -44,6 +44,7 @@ export const ROUTES = {
   earnings: '/app/earnings',
   upgrade: '/app/upgrade',
   airport: '/app/airport',
+  flights: '/app/flights',
   fleet: '/app/fleet',
   corporate: '/app/corporate',
   notifications: '/app/notifications',

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
-import { Plane, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plane, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import Link from 'next/link';
 import type { FlightWatch } from '@/types/database';
 
 export default function FlightsPage() {
@@ -13,6 +14,7 @@ export default function FlightsPage() {
   const [flightNumber, setFlightNumber] = useState('');
   const [flightDate, setFlightDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadFlights();
@@ -29,18 +31,27 @@ export default function FlightsPage() {
   async function handleTrackFlight(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
-    const res = await fetch('/api/flights/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ flight_number: flightNumber, flight_date: flightDate }),
-    });
+    try {
+      const res = await fetch('/api/flights/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flight_number: flightNumber, flight_date: flightDate }),
+      });
 
-    if (res.ok) {
-      setFlightNumber('');
-      setFlightDate('');
-      setShowForm(false);
-      await loadFlights();
+      const data = await res.json();
+
+      if (res.ok) {
+        setFlightNumber('');
+        setFlightDate('');
+        setShowForm(false);
+        await loadFlights();
+      } else {
+        setError(data.error || 'Failed to track flight');
+      }
+    } catch {
+      setError('Network error. Please try again.');
     }
     setLoading(false);
   }
@@ -59,8 +70,12 @@ export default function FlightsPage() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <header className="sticky top-0 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-4 py-3 z-40 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Flights</h1>
+      <header className="sticky top-0 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-4 py-3 z-40 flex items-center gap-3">
+        <Link href="/app/airport" className="p-1 text-surface-400 hover:text-white">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <Plane className="w-5 h-5 text-brand-400" />
+        <h1 className="text-xl font-bold text-white flex-1">Flights</h1>
         <button
           onClick={() => setShowForm(!showForm)}
           className="p-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
@@ -86,6 +101,9 @@ export default function FlightsPage() {
             required
             className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
+          {error && (
+            <p className="text-xs text-red-400 bg-red-400/10 rounded-xl px-3 py-2">{error}</p>
+          )}
           <button
             type="submit"
             disabled={loading}
