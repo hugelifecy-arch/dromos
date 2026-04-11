@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
-import { ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PostPage() {
@@ -12,6 +12,7 @@ export default function PostPage() {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'post' | 'ride'>('post');
+  const [toast, setToast] = useState<string | null>(null);
 
   // Ride form state
   const [rideForm, setRideForm] = useState({
@@ -63,7 +64,10 @@ export default function PostPage() {
       luggage_size: 'medium',
     });
 
-    if (!error) router.push('/app/feed');
+    if (!error) {
+      setToast('Ride published successfully!');
+      setTimeout(() => router.push('/app/rides'), 1500);
+    }
     setLoading(false);
   }
 
@@ -193,6 +197,14 @@ export default function PostPage() {
             {loading ? 'Publishing...' : 'Publish Ride'}
           </button>
         </form>
+      )}
+
+      {/* Success toast */}
+      {toast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-500/90 backdrop-blur-sm text-white px-5 py-3 rounded-xl shadow-lg animate-fade-in">
+          <CheckCircle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm font-medium">{toast}</span>
+        </div>
       )}
     </div>
   );
