@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase-server';
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { AVATAR_PLACEHOLDER, APP_NAME } from '@/lib/constants';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
 import RideCard from '@/components/ui/RideCard';
+import CommentSection from '@/components/ui/CommentSection';
 import Link from 'next/link';
 import type { Ride } from '@/types/database';
 
@@ -134,10 +135,7 @@ export default async function FeedPage() {
                   <Heart className="w-4 h-4" />
                   {(item as FeedPost).likes_count > 0 && (item as FeedPost).likes_count}
                 </button>
-                <button className="flex items-center gap-1.5 text-sm hover:text-brand-400 transition-colors">
-                  <MessageCircle className="w-4 h-4" />
-                  {(item as FeedPost).comments_count > 0 && (item as FeedPost).comments_count}
-                </button>
+                <CommentSection postId={item.id} commentsCount={(item as FeedPost).comments_count} />
               </div>
             </article>
           )
