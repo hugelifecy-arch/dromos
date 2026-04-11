@@ -1,19 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
-import { ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
 import Link from 'next/link';
 import type { EmptyLeg } from '@/lib/types/empty-leg';
+
+const POST_TYPES = [
+  { value: 'general', label: 'General' },
+  { value: 'question', label: 'Question' },
+  { value: 'tip', label: 'Tip / Advice' },
+  { value: 'milestone', label: 'Milestone' },
+];
 
 export default function PostPage() {
   const router = useRouter();
   const supabase = createClient();
   const [content, setContent] = useState('');
+  const [postType, setPostType] = useState('general');
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'post' | 'leg'>('post');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Empty leg form state
   const [legForm, setLegForm] = useState({
@@ -33,14 +44,65 @@ export default function PostPage() {
     notes: '',
   });
 
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setValidationError('Image must be under 5MB');
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setValidationError(null);
+  }
+
+  function removeImage() {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+  }
+
   async function handlePost() {
+    if (!content.trim()) return;
     setLoading(true);
+    setValidationError(null);
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
+
+    let imageUrl: string | null = null;
+
+    // Upload image if present
+    if (imageFile) {
+      const ext = imageFile.name.split('.').pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(path, imageFile, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) {
+        setValidationError('Image upload failed. Try again.');
+        setLoading(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(path);
+      imageUrl = urlData.publicUrl;
+    }
+
+    // Get user's district from verification
+    const { data: verification } = await supabase
+      .from('driver_verification')
+      .select('licence_district')
+      .eq('user_id', user.id)
+      .single();
 
     await supabase.from('feed_posts').insert({
       author_id: user.id,
-      content,
+      content: content.trim(),
+      image_url: imageUrl,
+      post_type: postType,
+      district: verification?.licence_district || null,
     });
 
     router.push('/app/feed');
@@ -51,7 +113,6 @@ export default function PostPage() {
     setValidationError(null);
     setLoading(true);
 
-    // Validation
     if (legForm.origin.trim() === legForm.destination.trim()) {
       setValidationError('Origin and destination cannot be the same');
       setLoading(false);
@@ -81,12 +142,8 @@ export default function PostPage() {
     }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) { setLoading(false); return; }
 
-    // Prepare leg data
     const legData: Partial<EmptyLeg> = {
       seller_id: user.id,
       origin: legForm.origin,
@@ -144,17 +201,69 @@ export default function PostPage() {
 
       {tab === 'post' ? (
         <div className="p-4 space-y-4">
+          {validationError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-sm text-red-400">
+              {validationError}
+            </div>
+          )}
+
+          {/* Post type selector */}
+          <div className="flex gap-2 flex-wrap">
+            {POST_TYPES.map((t) => (
+              <button
+                key={t.value}
+                onClick={() => setPostType(t.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  postType === t.value
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-surface-800 text-surface-400 hover:text-white'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="What's on your mind?"
+            placeholder={
+              postType === 'question' ? 'Ask the community...' :
+              postType === 'tip' ? 'Share a helpful tip...' :
+              postType === 'milestone' ? 'Celebrate an achievement...' :
+              "What's on your mind?"
+            }
             rows={5}
             className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
           />
+
+          {/* Image preview */}
+          {imagePreview && (
+            <div className="relative">
+              <img src={imagePreview} alt="" className="w-full rounded-xl max-h-60 object-cover" />
+              <button
+                onClick={removeImage}
+                className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
-            <button className="p-2 text-surface-500 hover:text-brand-400 transition-colors">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 text-surface-500 hover:text-brand-400 transition-colors"
+            >
               <ImageIcon className="w-5 h-5" />
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
             <button
               onClick={handlePost}
               disabled={!content.trim() || loading}
@@ -173,42 +282,21 @@ export default function PostPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Origin <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={legForm.origin}
-              onChange={(e) => setLegForm({ ...legForm, origin: e.target.value })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              placeholder="e.g. Larnaca Airport (LCA)"
-            />
+            <label className="block text-sm font-medium text-white mb-1">Origin <span className="text-red-400">*</span></label>
+            <input type="text" required value={legForm.origin} onChange={(e) => setLegForm({ ...legForm, origin: e.target.value })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="e.g. Larnaca Airport (LCA)" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Destination <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={legForm.destination}
-              onChange={(e) => setLegForm({ ...legForm, destination: e.target.value })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              placeholder="e.g. Limassol, Old Port"
-            />
+            <label className="block text-sm font-medium text-white mb-1">Destination <span className="text-red-400">*</span></label>
+            <input type="text" required value={legForm.destination} onChange={(e) => setLegForm({ ...legForm, destination: e.target.value })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="e.g. Limassol, Old Port" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Leg Type <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={legForm.leg_type}
-              onChange={(e) => setLegForm({ ...legForm, leg_type: e.target.value as any })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
+            <label className="block text-sm font-medium text-white mb-1">Leg Type <span className="text-red-400">*</span></label>
+            <select value={legForm.leg_type} onChange={(e) => setLegForm({ ...legForm, leg_type: e.target.value as any })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
               <option value="standard">Standard</option>
               <option value="airport_inbound">Airport Inbound</option>
               <option value="airport_outbound">Airport Outbound</option>
@@ -218,56 +306,30 @@ export default function PostPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Departure <span className="text-red-400">*</span>
-            </label>
+            <label className="block text-sm font-medium text-white mb-1">Departure <span className="text-red-400">*</span></label>
             <div className="space-y-2">
-              <input
-                type="datetime-local"
-                required
-                value={legForm.departure_datetime}
-                onChange={(e) => setLegForm({ ...legForm, departure_datetime: e.target.value })}
-                className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              <input type="datetime-local" required value={legForm.departure_datetime} onChange={(e) => setLegForm({ ...legForm, departure_datetime: e.target.value })}
+                className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={legForm.is_time_flexible}
-                  onChange={(e) => setLegForm({ ...legForm, is_time_flexible: e.target.checked })}
-                  className="w-4 h-4 bg-surface-800 border border-surface-700 rounded accent-brand-500"
-                />
+                <input type="checkbox" checked={legForm.is_time_flexible} onChange={(e) => setLegForm({ ...legForm, is_time_flexible: e.target.checked })}
+                  className="w-4 h-4 bg-surface-800 border border-surface-700 rounded accent-brand-500" />
                 <span className="text-sm text-surface-400">Flexible time (date only)</span>
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Seats Available <span className="text-red-400">*</span>
-            </label>
-            <p className="text-xs text-surface-400 mb-2">How many passengers can you take?</p>
-            <select
-              value={legForm.passenger_capacity}
-              onChange={(e) => setLegForm({ ...legForm, passenger_capacity: parseInt(e.target.value) })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <option key={n} value={n}>
-                  {n} seat{n !== 1 ? 's' : ''}
-                </option>
-              ))}
+            <label className="block text-sm font-medium text-white mb-1">Seats Available <span className="text-red-400">*</span></label>
+            <select value={legForm.passenger_capacity} onChange={(e) => setLegForm({ ...legForm, passenger_capacity: parseInt(e.target.value) })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (<option key={n} value={n}>{n} seat{n !== 1 ? 's' : ''}</option>))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Luggage Capacity <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={legForm.luggage_capacity}
-              onChange={(e) => setLegForm({ ...legForm, luggage_capacity: e.target.value as any })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
+            <label className="block text-sm font-medium text-white mb-1">Luggage Capacity <span className="text-red-400">*</span></label>
+            <select value={legForm.luggage_capacity} onChange={(e) => setLegForm({ ...legForm, luggage_capacity: e.target.value as any })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
               <option value="none">None</option>
               <option value="small">Small</option>
               <option value="medium">Medium</option>
@@ -276,32 +338,15 @@ export default function PostPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Asking Price (EUR) <span className="text-red-400">*</span>
-            </label>
-            <p className="text-xs text-surface-400 mb-2">Set your price. Buyers see this and decide to claim. You keep what you charge.</p>
-            <input
-              type="number"
-              required
-              min="1"
-              step="0.50"
-              value={legForm.asking_price}
-              onChange={(e) => setLegForm({ ...legForm, asking_price: e.target.value })}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              placeholder="0.00"
-            />
+            <label className="block text-sm font-medium text-white mb-1">Asking Price (EUR) <span className="text-red-400">*</span></label>
+            <input type="number" required min="1" step="0.50" value={legForm.asking_price} onChange={(e) => setLegForm({ ...legForm, asking_price: e.target.value })}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="0.00" />
           </div>
 
           <div>
             <label className="flex items-center gap-3 cursor-pointer">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={legForm.has_passenger}
-                  onChange={(e) => setLegForm({ ...legForm, has_passenger: e.target.checked })}
-                  className="w-4 h-4 bg-surface-800 border border-surface-700 rounded accent-brand-500"
-                />
-              </div>
+              <input type="checkbox" checked={legForm.has_passenger} onChange={(e) => setLegForm({ ...legForm, has_passenger: e.target.checked })}
+                className="w-4 h-4 bg-surface-800 border border-surface-700 rounded accent-brand-500" />
               <span className="text-sm font-medium text-white">I already have a passenger</span>
             </label>
           </div>
@@ -309,71 +354,36 @@ export default function PostPage() {
           {legForm.has_passenger && (
             <div className="space-y-4 bg-surface-800/50 border border-surface-700 rounded-xl p-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Passenger Count <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="8"
-                  value={legForm.passenger_count}
-                  onChange={(e) => setLegForm({ ...legForm, passenger_count: e.target.value })}
-                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="Number of passengers"
-                />
+                <label className="block text-sm font-medium text-white mb-1">Passenger Count <span className="text-red-400">*</span></label>
+                <input type="number" min="1" max="8" value={legForm.passenger_count} onChange={(e) => setLegForm({ ...legForm, passenger_count: e.target.value })}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Number of passengers" />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-white mb-1">Passenger Name</label>
-                <input
-                  type="text"
-                  value={legForm.passenger_name}
-                  onChange={(e) => setLegForm({ ...legForm, passenger_name: e.target.value })}
-                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="Optional"
-                />
+                <input type="text" value={legForm.passenger_name} onChange={(e) => setLegForm({ ...legForm, passenger_name: e.target.value })}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Optional" />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-white mb-1">Passenger Phone</label>
-                <input
-                  type="tel"
-                  value={legForm.passenger_phone}
-                  onChange={(e) => setLegForm({ ...legForm, passenger_phone: e.target.value })}
-                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="Optional"
-                />
+                <input type="tel" value={legForm.passenger_phone} onChange={(e) => setLegForm({ ...legForm, passenger_phone: e.target.value })}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Optional" />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-white mb-1">Special Requirements</label>
-                <textarea
-                  value={legForm.special_requirements}
-                  onChange={(e) => setLegForm({ ...legForm, special_requirements: e.target.value })}
-                  rows={2}
-                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                  placeholder="e.g. wheelchair accessible, pet-friendly, etc."
-                />
+                <textarea value={legForm.special_requirements} onChange={(e) => setLegForm({ ...legForm, special_requirements: e.target.value })} rows={2}
+                  className="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" placeholder="e.g. wheelchair accessible, pet-friendly, etc." />
               </div>
             </div>
           )}
 
           <div>
             <label className="block text-sm font-medium text-white mb-1">Notes</label>
-            <textarea
-              value={legForm.notes}
-              onChange={(e) => setLegForm({ ...legForm, notes: e.target.value })}
-              rows={2}
-              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-              placeholder="Any additional details..."
-            />
+            <textarea value={legForm.notes} onChange={(e) => setLegForm({ ...legForm, notes: e.target.value })} rows={2}
+              className="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" placeholder="Any additional details..." />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading}
+            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50">
             {loading ? 'Publishing...' : 'Post a Leg'}
           </button>
         </form>

@@ -76,23 +76,23 @@ export default async function ProfilePage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
+        <div className="grid grid-cols-4 gap-3 mt-6">
           <div>
             <p className="text-xl font-bold text-white">{profile.total_rides}</p>
-            <p className="text-xs text-surface-500">Legs Sold</p>
+            <p className="text-xs text-surface-500">Sold</p>
           </div>
           <div>
             <p className="text-xl font-bold text-white">{profile.total_drives}</p>
-            <p className="text-xs text-surface-500">Legs Bought</p>
+            <p className="text-xs text-surface-500">Bought</p>
           </div>
-          <div className="flex flex-col items-center">
-            <div className="flex items-center gap-1 mb-1">
-              <span className="text-xl font-bold text-white">
-                {profile.rating_avg > 0 ? profile.rating_avg.toFixed(1) : '-'}
-              </span>
-            </div>
-            <p className="text-xs text-surface-500">—</p>
-          </div>
+          <Link href={`/app/driver/${user.id}`} className="hover:bg-surface-800/50 rounded-lg p-1 transition-colors">
+            <p className="text-xl font-bold text-white">{profile.followers_count || 0}</p>
+            <p className="text-xs text-surface-500">Followers</p>
+          </Link>
+          <Link href={`/app/driver/${user.id}`} className="hover:bg-surface-800/50 rounded-lg p-1 transition-colors">
+            <p className="text-xl font-bold text-white">{profile.following_count || 0}</p>
+            <p className="text-xs text-surface-500">Following</p>
+          </Link>
         </div>
       </div>
 

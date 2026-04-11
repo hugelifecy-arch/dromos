@@ -1,17 +1,17 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase-server';
-import { Heart, MessageCircle, Bell } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { AVATAR_PLACEHOLDER, APP_NAME } from '@/lib/constants';
-import VerifiedBadge from '@/components/ui/VerifiedBadge';
+import { Bell, Search } from 'lucide-react';
+import { APP_NAME } from '@/lib/constants';
 import Link from 'next/link';
+import FeedClient from '@/components/feed/FeedClient';
 
 export default async function FeedPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: posts } = await supabase
+  // Fetch posts
+  const { data: rawPosts } = await supabase
     .from('feed_posts')
     .select(`
       *,
@@ -19,7 +19,37 @@ export default async function FeedPage() {
       ride:rides(origin_address, destination_address)
     `)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(15);
+
+  // Check which posts the user has liked
+  let likedPostIds: string[] = [];
+  if (user && rawPosts) {
+    const postIds = rawPosts.map((p) => p.id);
+    const { data: likes } = await supabase
+      .from('feed_likes')
+      .select('post_id')
+      .eq('user_id', user.id)
+      .in('post_id', postIds);
+    likedPostIds = (likes || []).map((l) => l.post_id);
+  }
+
+  // Get who the user follows
+  let followingIds: string[] = [];
+  if (user) {
+    const { data: follows } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', user.id);
+    followingIds = (follows || []).map((f) => f.following_id);
+  }
+
+  // Normalize Supabase join arrays
+  const posts = (rawPosts || []).map((p: any) => ({
+    ...p,
+    author: Array.isArray(p.author) ? p.author[0] : p.author,
+    ride: Array.isArray(p.ride) ? p.ride[0] : p.ride,
+    liked_by_me: likedPostIds.includes(p.id),
+  }));
 
   return (
     <div className="max-w-lg mx-auto">
@@ -27,9 +57,14 @@ export default async function FeedPage() {
       <header className="sticky top-0 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-4 py-3 z-40">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">{APP_NAME}</h1>
-          <Link href="/app/notifications" className="p-1.5 text-surface-400 hover:text-white transition-colors relative">
-            <Bell className="w-5 h-5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/app/drivers" className="p-1.5 text-surface-400 hover:text-white transition-colors">
+              <Search className="w-5 h-5" />
+            </Link>
+            <Link href="/app/notifications" className="p-1.5 text-surface-400 hover:text-white transition-colors relative">
+              <Bell className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -43,65 +78,12 @@ export default async function FeedPage() {
         </div>
       </Link>
 
-      {/* Posts */}
-      <div className="divide-y divide-surface-800">
-        {posts?.map((post) => (
-          <article key={post.id} className="p-4">
-            {/* Author */}
-            <div className="flex items-center gap-3 mb-3">
-              <img
-                src={post.author?.avatar_url || `${AVATAR_PLACEHOLDER}${post.author?.full_name || 'U'}`}
-                alt=""
-                className="w-10 h-10 rounded-full object-cover bg-surface-800"
-              />
-              <div>
-                <div className="flex items-center gap-1">
-                  <span className="text-white font-medium text-sm">{post.author?.full_name}</span>
-                  {post.author?.is_verified && <VerifiedBadge size="sm" />}
-                </div>
-                <time className="text-xs text-surface-500">
-                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                </time>
-              </div>
-            </div>
-
-            {/* Content */}
-            <p className="text-surface-200 text-sm mb-3 whitespace-pre-wrap">{post.content}</p>
-
-            {/* Linked ride */}
-            {post.ride && (
-              <div className="bg-surface-800/50 rounded-xl p-3 mb-3 text-sm">
-                <p className="text-surface-400 text-xs mb-1">Shared a ride</p>
-                <p className="text-white">{post.ride.origin_address} &rarr; {post.ride.destination_address}</p>
-              </div>
-            )}
-
-            {/* Image */}
-            {post.image_url && (
-              <img src={post.image_url} alt="" className="w-full rounded-xl mb-3 max-h-80 object-cover" />
-            )}
-
-            {/* Actions */}
-            <div className="flex items-center gap-6 text-surface-500">
-              <button className="flex items-center gap-1.5 text-sm hover:text-red-400 transition-colors">
-                <Heart className="w-4 h-4" />
-                {post.likes_count > 0 && post.likes_count}
-              </button>
-              <button className="flex items-center gap-1.5 text-sm hover:text-brand-400 transition-colors">
-                <MessageCircle className="w-4 h-4" />
-                {post.comments_count > 0 && post.comments_count}
-              </button>
-            </div>
-          </article>
-        ))}
-
-        {(!posts || posts.length === 0) && (
-          <div className="p-8 text-center text-surface-500">
-            <p className="text-lg mb-2">No posts yet</p>
-            <p className="text-sm">Be the first to share something with the community!</p>
-          </div>
-        )}
-      </div>
+      {/* Feed with filters, likes, comments, infinite scroll */}
+      <FeedClient
+        initialPosts={posts}
+        currentUserId={user?.id || null}
+        followingIds={followingIds}
+      />
     </div>
   );
 }

@@ -48,6 +48,7 @@ export const ROUTES = {
   corporate: '/app/corporate',
   notifications: '/app/notifications',
   notificationPreferences: '/app/notifications/preferences',
+  drivers: '/app/drivers',
   admin: '/admin',
 } as const;
 
