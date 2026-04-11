@@ -190,15 +190,9 @@ export default async function SettingsPage() {
               </label>
             ))}
           </div>
-          <button
-            onClick={() => {
-              // Placeholder for edit functionality
-              alert('Edit preferred areas - to be implemented with form submission');
-            }}
-            className="mt-4 text-sm text-brand-400 hover:text-brand-300 transition-colors font-medium"
-          >
-            Edit →
-          </button>
+          <span className="mt-4 inline-block text-sm text-surface-500 font-medium">
+            Coming soon
+          </span>
         </section>
 
         {/* Language Preference */}
@@ -239,15 +233,9 @@ export default async function SettingsPage() {
               <span className="text-surface-300 group-hover:text-white transition-colors">Turkish (Türkçe)</span>
             </label>
           </div>
-          <button
-            onClick={() => {
-              // Placeholder for edit functionality
-              alert('Edit language preference - to be implemented with form submission');
-            }}
-            className="mt-4 text-sm text-brand-400 hover:text-brand-300 transition-colors font-medium"
-          >
-            Edit →
-          </button>
+          <span className="mt-4 inline-block text-sm text-surface-500 font-medium">
+            Coming soon
+          </span>
         </section>
 
         {/* Account */}
@@ -263,17 +251,13 @@ export default async function SettingsPage() {
                 <span>Sign Out</span>
               </button>
             </form>
-            <button
-              onClick={() => {
-                if (confirm('Are you sure? This cannot be undone.')) {
-                  alert('Delete account - to be implemented');
-                }
-              }}
+            <a
+              href="mailto:support@dromos.app?subject=Delete%20My%20Account"
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 hover:text-red-300"
             >
               <Trash2 className="w-5 h-5" />
               <span>Delete Account</span>
-            </button>
+            </a>
           </div>
         </section>
       </div>

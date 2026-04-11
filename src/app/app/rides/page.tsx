@@ -30,7 +30,7 @@ export default function RidesPage() {
   });
 
   // Debounced fetch function
-  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const fetchLegs = useCallback((currentFilters: FilterState) => {
     clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(async () => {
