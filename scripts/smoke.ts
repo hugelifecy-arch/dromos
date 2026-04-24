@@ -166,40 +166,105 @@ async function checkSupabase(): Promise<CheckResult[]> {
   const results: CheckResult[] = [];
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) {
+
+  if (!url) {
     results.push({
       name: 'supabase: schema inspection',
       status: 'skip',
-      detail: 'needs SUPABASE_SERVICE_ROLE_KEY',
+      detail: 'needs NEXT_PUBLIC_SUPABASE_URL',
     });
     return results;
   }
 
-  const client = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
-
-  for (const { migration, table } of MIGRATION_TABLES) {
-    // head + count=exact is the cheapest read: no rows returned, just a
-    // head count. If the table doesn't exist we get a clear error.
-    try {
-      const { error } = await client
-        .from(table)
-        .select('*', { head: true, count: 'exact' })
-        .limit(0);
-      if (error) {
-        results.push({ name: `db: ${migration}`, status: 'fail', detail: error.message });
-      } else {
-        results.push({ name: `db: ${migration}`, status: 'ok' });
+  // Prefer service-role: bypasses RLS so "table exists + RLS denied" and
+  // "table exists + RLS allowed" both resolve cleanly. Fall back to anon key
+  // which is enough to distinguish "missing" (PostgREST 404 / PGRST205) from
+  // "exists" (any other status including RLS denials).
+  if (serviceRoleKey) {
+    const client = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
+    for (const { migration, table } of MIGRATION_TABLES) {
+      try {
+        const { error } = await client
+          .from(table)
+          .select('*', { head: true, count: 'exact' })
+          .limit(0);
+        if (error) {
+          results.push({ name: `db: ${migration}`, status: 'fail', detail: error.message });
+        } else {
+          results.push({ name: `db: ${migration}`, status: 'ok' });
+        }
+      } catch (err) {
+        results.push({
+          name: `db: ${migration}`,
+          status: 'fail',
+          detail: err instanceof Error ? err.message : String(err),
+        });
       }
-    } catch (err) {
-      results.push({
-        name: `db: ${migration}`,
-        status: 'fail',
-        detail: err instanceof Error ? err.message : String(err),
-      });
     }
+    return results;
   }
 
+  if (anonKey) {
+    // Anon-key REST probe. Distinguishes "table missing" (PGRST205 / 404)
+    // from "table exists" (200 or 401/403 due to RLS). Doesn't need a
+    // service-role secret — handy when running from a laptop that only has
+    // the publishable key in .env.local.
+    results.push({
+      name: 'supabase: schema probe mode',
+      status: 'warn',
+      detail: 'no service role key; falling back to anon-key REST probe (coarser)',
+    });
+    for (const { migration, table } of MIGRATION_TABLES) {
+      try {
+        const res = await fetch(
+          `${url.replace(/\/$/, '')}/rest/v1/${encodeURIComponent(table)}?select=*&limit=0`,
+          {
+            headers: {
+              apikey: anonKey,
+              authorization: `Bearer ${anonKey}`,
+            },
+          },
+        );
+        if (res.status === 200 || res.status === 206) {
+          results.push({ name: `db: ${migration}`, status: 'ok', detail: 'exists (RLS permitted anon)' });
+        } else if (res.status === 401 || res.status === 403) {
+          results.push({ name: `db: ${migration}`, status: 'ok', detail: `exists (HTTP ${res.status} — RLS blocks anon, table is there)` });
+        } else if (res.status === 404) {
+          // PostgREST returns 404 + body.code='PGRST205' when a table is
+          // missing from its schema cache. Other 404s could mean the URL
+          // itself is wrong; we surface the code either way.
+          const body = await res.text().catch(() => '');
+          const codeMatch = body.match(/"code":"([^"]+)"/);
+          results.push({
+            name: `db: ${migration}`,
+            status: 'fail',
+            detail: `missing (HTTP 404${codeMatch ? ` ${codeMatch[1]}` : ''})`,
+          });
+        } else {
+          results.push({
+            name: `db: ${migration}`,
+            status: 'fail',
+            detail: `unexpected HTTP ${res.status}`,
+          });
+        }
+      } catch (err) {
+        results.push({
+          name: `db: ${migration}`,
+          status: 'fail',
+          detail: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    return results;
+  }
+
+  results.push({
+    name: 'supabase: schema inspection',
+    status: 'skip',
+    detail: 'needs SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  });
   return results;
 }
 
