@@ -23,9 +23,11 @@ credential lands and you need to flip a switch without regressing anything.
 | **S11 WhatsApp bot** | | | |
 | `WHATSAPP_BOT_ENABLED` | `false` | ops | Master flag for the Twilio webhook at `/api/whatsapp/webhook` |
 | `WHATSAPP_DEV_STUB` | `false` | ops | Skip Twilio signature check for local `curl` testing — **never true in prod** |
-| `TWILIO_AUTH_TOKEN` | — | Twilio console | Used to verify inbound `X-Twilio-Signature` |
+| `TWILIO_ACCOUNT_SID` | — | Twilio console | Required to fetch voice-note media from Twilio (S12) |
+| `TWILIO_AUTH_TOKEN` | — | Twilio console | Used to verify inbound `X-Twilio-Signature` and to auth media fetch |
 | `TWILIO_WEBHOOK_URL` | — | ops | Public URL Twilio POSTs to; must match the signature payload exactly |
 | **S12 AI extraction** | | | |
+| `WHATSAPP_VOICE_ENABLED` | `false` | ops | Master flag for the voice-note branch inside the WhatsApp webhook |
 | `OPENAI_API_KEY` | — | OpenAI dashboard | Whisper transcription |
 | `ANTHROPIC_API_KEY` | — | Anthropic console | Claude Haiku extraction (prompt cache is on) |
 | **S13 flight auto-match** | | | |
@@ -89,16 +91,19 @@ for them to confirm with ΝΑΙ.
 1. In Twilio console:
    - Create a WhatsApp Business sender (sandbox is fine for pilot).
    - Point its webhook at `https://<your-host>/api/whatsapp/webhook`.
-   - Copy the Auth Token into `TWILIO_AUTH_TOKEN`.
+   - Copy the Account SID into `TWILIO_ACCOUNT_SID` and the Auth Token
+     into `TWILIO_AUTH_TOKEN`.
    - Copy the webhook URL you just set into `TWILIO_WEBHOOK_URL` —
      **byte-identical**, no query string, no trailing slash. Twilio signs
      the exact URL it POSTed.
 2. Set `WHATSAPP_BOT_ENABLED=true`. Leave `WHATSAPP_DEV_STUB` unset /
    `false`.
-3. For voice extraction (S12), ensure `OPENAI_API_KEY` and
-   `ANTHROPIC_API_KEY` are set. Voice pipeline degrades gracefully if
-   missing (draft leg is created with `parse_error` instead of succeeding)
-   but the feature is clearly broken.
+3. For voice extraction (S12), set `WHATSAPP_VOICE_ENABLED=true` and
+   ensure `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are populated. The
+   voice branch also requires the Twilio credentials above to fetch the
+   media payload. If the flag is off or any key is missing, text still
+   works and voice notes reply with a Greek "voice currently unavailable"
+   message (see `voice.ts`).
 
 **Smoke test:**
 
