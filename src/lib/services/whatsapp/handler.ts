@@ -42,8 +42,17 @@ import {
   rejectedDraftReply,
   twiml,
   unknownReply,
+  voiceDisabledReply,
+  voiceExtractionFailedReply,
+  voiceTranscriptionFailedReply,
   type BotLocale,
 } from './replies';
+import {
+  processVoiceMessage,
+  readVoiceEnv,
+  type VoiceEnv,
+  type VoiceOutcome,
+} from './voice';
 
 // --------------------------------------------------------------------------
 // Types
@@ -54,12 +63,17 @@ export interface InboundMessage {
   toE164: string;            // our number
   body: string;
   twilioSid: string;
+  /** Optional Twilio media. MediaUrl0 + MediaContentType0. */
+  media?: { url: string; contentType: string };
 }
 
 export interface HandlerContext {
   supabase: SupabaseClient;
   appUrl: string;            // NEXT_PUBLIC_APP_URL
   now?: Date;                // injectable for tests
+  /** Optional overrides for voice env + fetch — set by tests. */
+  voiceEnv?: VoiceEnv;
+  fetchImpl?: typeof fetch;
 }
 
 interface Session {
@@ -83,23 +97,32 @@ export async function handleInbound(
   const session = await loadOrCreateSession(ctx.supabase, msg.fromE164);
   await logMessage(ctx.supabase, session.id, 'inbound', msg);
 
-  // Opt-out short-circuits everything — GDPR requirement.
+  // Voice notes require consent first (same GDPR bar as text) — we defer
+  // until the session is past awaiting_opt_in. Voice also bypasses the text
+  // parser entirely: we go straight to Whisper + Claude.
+  const hasVoice = !!msg.media && msg.media.contentType.startsWith('audio/');
+
+  // Opt-out short-circuits everything — GDPR requirement. We still parse the
+  // text body on voice messages because Twilio may include a Body alongside
+  // the media (e.g. a caption); if the caption says STOP we honour it.
   const intent = parseMessage(msg.body);
   if (intent.kind === 'opt_out') return respondOptOut(ctx.supabase, session, msg);
 
   if (session.state === 'opted_out') {
-    // Respect opt-out silently for anything except an explicit "START".
     if (intent.kind === 'opt_in') return respondOptIn(ctx.supabase, session, msg);
     return emptyTwiml();
   }
 
   if (session.state === 'awaiting_opt_in') {
     if (intent.kind === 'opt_in') return respondOptIn(ctx.supabase, session, msg);
-    // Any other inbound before consent -> just re-prompt the consent screen.
     return twiml(consentPrompt(session.last_locale ?? 'el'));
   }
 
   // From here on, session.state in {idle, awaiting_confirmation}.
+
+  if (hasVoice) {
+    return handleVoiceMessage(ctx, session, msg);
+  }
 
   if (intent.kind === 'help') {
     return twiml(helpReply(session.last_locale ?? 'el'));
@@ -115,6 +138,69 @@ export async function handleInbound(
   }
 
   return twiml(unknownReply(session.last_locale ?? 'el'));
+}
+
+// --------------------------------------------------------------------------
+// Voice branch (Sprint 12)
+// --------------------------------------------------------------------------
+
+async function handleVoiceMessage(
+  ctx: HandlerContext,
+  session: Session,
+  msg: InboundMessage,
+): Promise<string> {
+  const locale = session.last_locale ?? 'el';
+  if (!msg.media) return twiml(errorReply(locale));
+
+  if (!session.user_id) {
+    return twiml(notVerifiedReply(locale));
+  }
+
+  const outcome: VoiceOutcome = await processVoiceMessage({
+    supabase: ctx.supabase,
+    mediaUrl: msg.media.url,
+    mediaContentType: msg.media.contentType,
+    nowIso: (ctx.now ?? new Date()).toISOString(),
+    env: ctx.voiceEnv ?? readVoiceEnv(),
+    fetchImpl: ctx.fetchImpl,
+  });
+
+  if (outcome.kind === 'disabled') {
+    return twiml(voiceDisabledReply(locale));
+  }
+  if (outcome.kind === 'transcription_failed') {
+    return twiml(voiceTranscriptionFailedReply(locale));
+  }
+  if (outcome.kind === 'extraction_failed') {
+    return twiml(voiceExtractionFailedReply(outcome.transcript, locale));
+  }
+
+  // Voice extraction succeeded — reuse the text post-leg path with voice
+  // provenance threaded through so the draft records transcript + URL.
+  const data: PostLegData = {
+    originRaw: outcome.extraction.originRaw,
+    destinationRaw: outcome.extraction.destinationRaw,
+    originDistrict: outcome.extraction.originDistrict,
+    destinationDistrict: outcome.extraction.destinationDistrict,
+    departureLocal: outcome.extraction.departureLocal,
+    askingPriceEur: outcome.extraction.askingPriceEur,
+  };
+
+  return handlePostLeg(ctx, session, msg, data, {
+    source: 'voice',
+    rawVoiceUrl: outcome.audioUrl,
+    transcript: outcome.transcript,
+    transcriptLang: outcome.transcriptLang,
+    confidence: outcome.extraction.confidence,
+  });
+}
+
+interface VoiceMeta {
+  source: 'voice';
+  rawVoiceUrl: string;
+  transcript: string;
+  transcriptLang: 'el' | 'en';
+  confidence: number;
 }
 
 // --------------------------------------------------------------------------
@@ -215,6 +301,7 @@ async function handlePostLeg(
   session: Session,
   msg: InboundMessage,
   data: PostLegData,
+  voice?: VoiceMeta,
 ): Promise<string> {
   const locale = session.last_locale ?? 'el';
 
@@ -230,7 +317,7 @@ async function handlePostLeg(
 
   const rate = await fetchMeterRate(ctx.supabase, data.originDistrict, data.destinationDistrict, departure);
   if (!rate) {
-    await recordDraft(ctx.supabase, session.id, msg, data, null, 'no_meter_rate');
+    await recordDraft(ctx.supabase, session.id, msg, data, null, 'no_meter_rate', voice);
     return twiml(noMeterRateReply(locale));
   }
 
@@ -258,11 +345,11 @@ async function handlePostLeg(
 
   if (data.askingPriceEur != null) {
     if (data.askingPriceEur > pricing.ceilingEur) {
-      await recordDraft(ctx.supabase, session.id, msg, data, pricing, 'above_ceiling');
+      await recordDraft(ctx.supabase, session.id, msg, data, pricing, 'above_ceiling', voice);
       return twiml(priceAboveCeilingReply(data.askingPriceEur, pricing.ceilingEur, locale));
     }
     if (data.askingPriceEur < pricing.floorEur) {
-      await recordDraft(ctx.supabase, session.id, msg, data, pricing, 'below_floor');
+      await recordDraft(ctx.supabase, session.id, msg, data, pricing, 'below_floor', voice);
       return twiml(priceBelowFloorReply(data.askingPriceEur, pricing.floorEur, locale));
     }
   } else {
@@ -270,7 +357,7 @@ async function handlePostLeg(
     return twiml(missingPriceReply(data, locale));
   }
 
-  const draftId = await createDraft(ctx.supabase, session.id, msg, data, departure, pricing, askingPriceEur);
+  const draftId = await createDraft(ctx.supabase, session.id, msg, data, departure, pricing, askingPriceEur, voice);
 
   await supersedeOtherDraftsAndPromote(ctx.supabase, session.id, draftId);
 
@@ -462,21 +549,25 @@ async function createDraft(
   departure: Date,
   pricing: PricingOutput,
   askingPriceEur: number,
+  voice?: VoiceMeta,
 ): Promise<string> {
   const { data: inserted, error } = await supabase
     .from('whatsapp_draft_legs')
     .insert({
       session_id: sessionId,
-      source: 'text',
+      source: voice ? 'voice' : 'text',
       raw_message_sid: msg.twilioSid,
       raw_body: msg.body,
+      raw_voice_url: voice?.rawVoiceUrl ?? null,
+      transcript: voice?.transcript ?? null,
+      transcript_lang: voice?.transcriptLang ?? null,
       extracted_origin: data.originRaw,
       extracted_destination: data.destinationRaw,
       extracted_origin_district: data.originDistrict,
       extracted_destination_district: data.destinationDistrict,
       extracted_departure: departure.toISOString(),
       extracted_asking_price_eur: askingPriceEur,
-      confidence: 0.9,
+      confidence: voice?.confidence ?? 0.9,
       pricing_meter_eur: pricing.regulatedMeterEur,
       pricing_floor_eur: pricing.floorEur,
       pricing_ceiling_eur: pricing.ceilingEur,
@@ -495,17 +586,22 @@ async function recordDraft(
   data: PostLegData,
   pricing: PricingOutput | null,
   parseError: string,
+  voice?: VoiceMeta,
 ): Promise<void> {
   await supabase.from('whatsapp_draft_legs').insert({
     session_id: sessionId,
-    source: 'text',
+    source: voice ? 'voice' : 'text',
     raw_message_sid: msg.twilioSid,
     raw_body: msg.body,
+    raw_voice_url: voice?.rawVoiceUrl ?? null,
+    transcript: voice?.transcript ?? null,
+    transcript_lang: voice?.transcriptLang ?? null,
     extracted_origin: data.originRaw,
     extracted_destination: data.destinationRaw,
     extracted_origin_district: data.originDistrict,
     extracted_destination_district: data.destinationDistrict,
     extracted_asking_price_eur: data.askingPriceEur ?? null,
+    confidence: voice?.confidence ?? null,
     pricing_meter_eur: pricing?.regulatedMeterEur ?? null,
     pricing_floor_eur: pricing?.floorEur ?? null,
     pricing_ceiling_eur: pricing?.ceilingEur ?? null,
@@ -555,6 +651,8 @@ async function logMessage(
     from_number: msg.fromE164,
     to_number: msg.toE164,
     body: msg.body,
+    num_media: msg.media ? 1 : 0,
+    media_urls: msg.media ? [msg.media.url] : null,
   });
 }
 

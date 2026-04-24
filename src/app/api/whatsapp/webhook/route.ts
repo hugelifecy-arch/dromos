@@ -71,7 +71,15 @@ export async function POST(request: Request): Promise<Response> {
     return xmlResponse(emptyTwiml());
   }
 
-  const inbound: InboundMessage = { fromE164: from, toE164: to, body, twilioSid };
+  // Sprint 12: pass through the first media attachment so the handler can
+  // route voice notes to Whisper + Claude. Twilio numbers params starting
+  // from 0; we only care about a single attachment for MVP.
+  const numMedia = parseInt(params.NumMedia ?? '0', 10) || 0;
+  const mediaUrl = numMedia > 0 ? params.MediaUrl0 ?? '' : '';
+  const mediaContentType = numMedia > 0 ? params.MediaContentType0 ?? '' : '';
+  const media = mediaUrl && mediaContentType ? { url: mediaUrl, contentType: mediaContentType } : undefined;
+
+  const inbound: InboundMessage = { fromE164: from, toE164: to, body, twilioSid, media };
 
   try {
     const reply = await handleInbound(inbound, {
