@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
     "@stripe/stripe-js": "^2.4.0",
