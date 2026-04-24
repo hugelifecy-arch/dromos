@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
 import Link from 'next/link';
-import type { EmptyLeg } from '@/lib/types/empty-leg';
 
 const POST_TYPES = [
   { value: 'general', label: 'General' },
@@ -141,35 +140,35 @@ export default function PostPage() {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
+    // Server-side POST so the regulatory pricing check (floor/ceiling vs
+    // Ministry meter) runs before we hit the DB CHECK constraint. The API
+    // returns 422 with a specific message when the price is out of band.
+    const res = await fetch('/api/empty-legs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        origin: legForm.origin,
+        destination: legForm.destination,
+        leg_type: legForm.leg_type,
+        departure_datetime: new Date(legForm.departure_datetime).toISOString(),
+        is_time_flexible: legForm.is_time_flexible,
+        passenger_capacity: Number(legForm.passenger_capacity),
+        luggage_capacity: legForm.luggage_capacity,
+        asking_price: askingPrice,
+        has_passenger: legForm.has_passenger,
+        passenger_count: legForm.has_passenger ? Number(legForm.passenger_count) : null,
+        passenger_name: legForm.has_passenger && legForm.passenger_name ? legForm.passenger_name : null,
+        passenger_phone: legForm.has_passenger && legForm.passenger_phone ? legForm.passenger_phone : null,
+        special_requirements: legForm.has_passenger && legForm.special_requirements ? legForm.special_requirements : null,
+        notes: legForm.notes || null,
+      }),
+    });
 
-    const legData: Partial<EmptyLeg> = {
-      seller_id: user.id,
-      origin: legForm.origin,
-      destination: legForm.destination,
-      leg_type: legForm.leg_type,
-      departure_datetime: new Date(legForm.departure_datetime).toISOString(),
-      is_time_flexible: legForm.is_time_flexible,
-      passenger_capacity: Number(legForm.passenger_capacity),
-      luggage_capacity: legForm.luggage_capacity,
-      asking_price: askingPrice,
-      currency: 'EUR',
-      has_passenger: legForm.has_passenger,
-      passenger_count: legForm.has_passenger ? Number(legForm.passenger_count) : null,
-      passenger_name: legForm.has_passenger && legForm.passenger_name ? legForm.passenger_name : null,
-      passenger_phone: legForm.has_passenger && legForm.passenger_phone ? legForm.passenger_phone : null,
-      special_requirements: legForm.has_passenger && legForm.special_requirements ? legForm.special_requirements : null,
-      notes: legForm.notes || null,
-      status: 'open',
-    };
-
-    const { error } = await supabase.from('empty_legs').insert(legData);
-
-    if (!error) {
+    if (res.ok) {
       router.push('/app/feed');
     } else {
-      setValidationError('Failed to create empty leg. Please try again.');
+      const payload = await res.json().catch(() => null);
+      setValidationError(payload?.message ?? payload?.error ?? 'Failed to create empty leg. Please try again.');
     }
     setLoading(false);
   }

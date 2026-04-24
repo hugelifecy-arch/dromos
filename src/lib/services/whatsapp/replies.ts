@@ -182,6 +182,34 @@ export function errorReply(locale: BotLocale = 'el'): string {
     : 'Something went wrong. Please try again shortly.';
 }
 
+// --- Voice (Sprint 12) -------------------------------------------------
+
+export function voiceDisabledReply(locale: BotLocale = 'el'): string {
+  return locale === 'el'
+    ? 'Τα φωνητικά μηνύματα δεν είναι ακόμη διαθέσιμα. ' +
+        'Στείλε γραπτά, π.χ. «Λάρνακα → Λεμεσός 18:30 €25».'
+    : 'Voice notes are not available yet. ' +
+        'Send text instead, e.g. "Larnaca → Limassol 18:30 €25".';
+}
+
+export function voiceTranscriptionFailedReply(locale: BotLocale = 'el'): string {
+  return locale === 'el'
+    ? 'Δεν μπόρεσα να ακούσω το φωνητικό. Στείλε γραπτό μήνυμα ή δοκίμασε ξανά.'
+    : 'I could not hear the voice note. Send a text message or try again.';
+}
+
+export function voiceExtractionFailedReply(
+  transcript: string,
+  locale: BotLocale = 'el',
+): string {
+  const quoted = transcript.length > 120 ? transcript.slice(0, 117) + '…' : transcript;
+  return locale === 'el'
+    ? `Άκουσα: «${quoted}», αλλά δεν κατάλαβα διαδρομή + ώρα. ` +
+        `Στείλε γραπτά π.χ. «Λάρνακα → Λεμεσός 18:30 €25».`
+    : `Heard: "${quoted}" — but could not pin down route + time. ` +
+        `Send text, e.g. "Larnaca → Limassol 18:30 €25".`;
+}
+
 // --------------------------------------------------------------------------
 // Formatting helpers
 // --------------------------------------------------------------------------
