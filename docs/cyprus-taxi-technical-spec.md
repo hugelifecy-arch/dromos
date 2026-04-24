@@ -318,19 +318,37 @@ single largest regulatory risk. Engineering must make it defensible:
 model version)` in a new `ai_extractions` table. A driver sending the same
 recurring route daily pays for one transcription, not thirty.
 
+**Claude prompt caching:** every Claude API caller (extraction today;
+concierge agent + dispute triage when those land) MUST send the system
+prompt as a content-block array with `cache_control: {type: 'ephemeral'}`.
+The system block must be byte-stable across requests — per-call state
+(reference time, request id, session metadata) goes in the user turn.
+Anthropic's prompt cache holds the system block for ~5 minutes; measured
+savings on S12's extraction path are ~60% input tokens / ~90% latency on a
+warm call. See `src/lib/services/ai/extract.ts` for the canonical shape.
+
+**Sandbox-blocker pattern:** external contracts (Twilio, AviationStack,
+AI providers) gate each sprint with an environment flag that defaults to
+false. The migration + service code ships immediately; flipping the flag
+once credentials land is a one-line change. Canonical flags so far:
+`WHATSAPP_BOT_ENABLED` (S11), `WHATSAPP_DEV_STUB` (S11),
+`FLIGHT_MATCH_ENABLED` (S13), plus the heatmap's `HEATMAP_WINDOW_DAYS`
+tunable (S14). New integrations should add a matching flag rather than
+block on credential availability.
+
 ---
 
 ## 8. Rollout Sequence (mapped to strategy §4 roadmap)
 
-| Sprint | Deliverable | Dependency |
-|---|---|---|
-| 9 | Pricing service + regulated meter seed data + DB constraint | — |
-| 10 | Greek-first copy rewrite (i18n.ts), remove carpool framing | — |
-| 11 | WhatsApp bot MVP (text only, manual transcription fallback) | Twilio account, pricing service |
-| 12 | Voice-note transcription + LLM extraction | Sprint 11 |
-| 13 | Flight auto-match cron + suggestions UI | AviationStack contract, pricing service |
-| 14 | PostGIS migration + heatmap MVP | — |
-| 15 | Hotel concierge portal skeleton + embed widget | Tenant model, pricing service |
+| Sprint | Deliverable | Status | Dependency |
+|---|---|---|---|
+| 9  | Pricing service + regulated meter seed data + DB constraint | ✅ shipped | — |
+| 10 | Greek-first copy rewrite (i18n.ts), remove carpool framing | ✅ shipped | — |
+| 11 | WhatsApp bot MVP (text only, manual transcription fallback) | ✅ shipped dark (`WHATSAPP_BOT_ENABLED=false` until Twilio contract lands) | Twilio account, pricing service |
+| 12 | Voice-note transcription + LLM extraction | ✅ shipped dark (flips on same flag as S11; Claude prompt caching on) | Sprint 11 |
+| 13 | Flight auto-match cron + suggestions UI | ✅ shipped dark (`FLIGHT_MATCH_ENABLED=false` until AviationStack contract lands) | AviationStack contract, pricing service |
+| 14 | PostGIS migration + heatmap MVP | ✅ shipped (MapLibre + OSM path, no Mapbox token needed) | — |
+| 15 | Hotel concierge portal skeleton + embed widget | next | Tenant model, pricing service |
 | 16 | JCC Payments integration | — |
 | 17 | Tax / VAT export dashboard v1 | Earnings data, 6 months of real listings |
 | 18 | Peer-handoff flow | Trusted-driver graph (new) |
