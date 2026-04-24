@@ -50,11 +50,15 @@ const plans = [
   },
 ];
 
+type PaymentMethod = 'stripe' | 'jcc';
+
 export default function UpgradePage() {
   const supabase = createClient();
   const [currentTier, setCurrentTier] = useState<SubscriptionTier>('free');
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const [method, setMethod] = useState<PaymentMethod>('stripe');
   const [loading, setLoading] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -73,6 +77,19 @@ export default function UpgradePage() {
 
   async function handleSubscribe(tier: 'plus' | 'pro') {
     setLoading(tier);
+    setNotice(null);
+    try {
+      if (method === 'stripe') {
+        await startStripeCheckout(tier);
+      } else {
+        await startJccCheckout(tier);
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function startStripeCheckout(tier: 'plus' | 'pro') {
     const priceId = billing === 'monthly'
       ? STRIPE_PRICE_IDS[`${tier}_monthly`]
       : STRIPE_PRICE_IDS[`${tier}_yearly`];
@@ -85,7 +102,30 @@ export default function UpgradePage() {
 
     const { url } = await res.json();
     if (url) window.location.href = url;
-    setLoading(null);
+  }
+
+  async function startJccCheckout(tier: 'plus' | 'pro') {
+    // JCC handles only the monthly one-shot in v1; yearly ships with the
+    // Payment Agreement API upgrade.
+    const res = await fetch('/api/payments/jcc/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'driver_subscription', subscriptionTier: tier }),
+    });
+
+    if (res.status === 202) {
+      // Dark mode — endpoint intentionally skipped. Tell the user, don't surprise them.
+      setNotice('JCC payments are coming soon. Please use the card (Stripe) option for now.');
+      return;
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setNotice(body.error || `JCC checkout failed (${res.status}).`);
+      return;
+    }
+
+    const body = await res.json() as { action: string; fields: Record<string, string> };
+    submitJccForm(body.action, body.fields);
   }
 
   async function handleCancel() {
@@ -111,12 +151,39 @@ export default function UpgradePage() {
           Monthly
         </button>
         <button
-          onClick={() => setBilling('yearly')}
+          onClick={() => { setBilling('yearly'); if (method === 'jcc') setMethod('stripe'); }}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${billing === 'yearly' ? 'bg-brand-600 text-white' : 'bg-surface-800 text-surface-400'}`}
         >
           Yearly <span className="text-green-400 text-xs">Save 33%</span>
         </button>
       </div>
+
+      {/* Payment method picker. JCC is Cypriot domestic, Stripe is
+          international card. Yearly billing is Stripe-only until the JCC
+          Payment Agreement API lands (S16 ships one-shot only). */}
+      <div className="px-4 pb-2 flex items-center gap-2 text-xs">
+        <span className="text-surface-500 uppercase tracking-wide">Pay with:</span>
+        <button
+          onClick={() => setMethod('stripe')}
+          className={`px-3 py-1.5 rounded-lg font-medium ${method === 'stripe' ? 'bg-brand-600 text-white' : 'bg-surface-800 text-surface-300 hover:text-white'}`}
+        >
+          Card (Stripe)
+        </button>
+        <button
+          onClick={() => setMethod('jcc')}
+          disabled={billing === 'yearly'}
+          title={billing === 'yearly' ? 'JCC supports monthly only in v1' : 'JCC — Κύπρος'}
+          className={`px-3 py-1.5 rounded-lg font-medium ${method === 'jcc' ? 'bg-brand-600 text-white' : 'bg-surface-800 text-surface-300 hover:text-white'} disabled:opacity-40 disabled:cursor-not-allowed`}
+        >
+          JCC · Κύπρος
+        </button>
+      </div>
+
+      {notice && (
+        <div className="mx-4 mb-2 text-sm text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+          {notice}
+        </div>
+      )}
 
       {/* Plans */}
       <div className="p-4 space-y-4">
@@ -182,4 +249,25 @@ export default function UpgradePage() {
       </div>
     </div>
   );
+}
+
+/**
+ * Build a hidden form and submit it to the JCC hosted-payment URL. The
+ * server-side /api/payments/jcc/checkout returned {action, fields} with the
+ * signature already computed; we just need the browser to POST it.
+ */
+function submitJccForm(action: string, fields: Record<string, string>): void {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = action;
+  form.style.display = 'none';
+  for (const [name, value] of Object.entries(fields)) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  form.submit();
 }
