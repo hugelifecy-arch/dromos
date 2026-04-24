@@ -122,7 +122,7 @@ export default function FeedClient({ initialPosts, currentUserId, followingIds }
   useEffect(() => {
     const channel = supabase
       .channel('feed-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feed_posts' }, async (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feed_posts' }, async (payload: { new: Record<string, unknown> }) => {
         const newPost = payload.new as any;
         // Fetch author info
         const { data: author } = await supabase

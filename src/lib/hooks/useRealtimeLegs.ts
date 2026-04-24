@@ -28,9 +28,9 @@ export function useRealtimeLegs(callback: RealtimeCallback) {
           schema: 'public',
           table: 'empty_legs',
         },
-        (payload) => {
+        (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
           const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
-          const leg = (payload.new || payload.old) as EmptyLeg;
+          const leg = (payload.new || payload.old) as unknown as EmptyLeg;
           stableCallback(eventType, leg);
         }
       )
@@ -64,7 +64,7 @@ export function useRealtimeNotifications(
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        (payload: { new: Record<string, unknown> }) => {
           onNewNotification(payload.new);
         }
       )

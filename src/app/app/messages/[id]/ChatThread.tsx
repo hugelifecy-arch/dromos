@@ -92,7 +92,7 @@ export default function ChatThread({
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        async (payload) => {
+        async (payload: { new: MessageRow }) => {
           const newMsg = payload.new as MessageRow;
           // Don't add if already exists (optimistic)
           if (messages.find((m) => m.id === newMsg.id)) return;
@@ -125,12 +125,12 @@ export default function ChatThread({
           table: 'counter_offers',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        (payload: { eventType: string; new: CounterOfferRow }) => {
           if (payload.eventType === 'INSERT') {
-            setPendingOffers((prev) => [...prev, payload.new as CounterOfferRow]);
+            setPendingOffers((prev) => [...prev, payload.new]);
           } else if (payload.eventType === 'UPDATE') {
             setPendingOffers((prev) =>
-              prev.map((o) => (o.id === (payload.new as CounterOfferRow).id ? (payload.new as CounterOfferRow) : o))
+              prev.map((o) => (o.id === payload.new.id ? payload.new : o))
             );
           }
         }
