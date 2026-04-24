@@ -11,13 +11,15 @@ data-model, API, integration, and compliance work.
 
 ## 1. State of the Build (what already exists)
 
-The repository is a Next.js 15 + React 19 + Supabase + Stripe application with
-eight migrations shipped through Sprint 8. The parts that already map to the
-strategy:
+The repository is a Next.js 15 + React 19 + Supabase + Stripe application
+with **fourteen migrations** shipped through Sprint 15. What now exists,
+grouped by strategy pillar:
+
+### 1.1 Pre-spec scaffold (migrations 001–008)
 
 | Strategy requirement | Current implementation |
 |---|---|
-| Empty-leg listings | `supabase/migrations/003_empty_legs.sql`, `src/lib/types/empty-leg.ts`, `src/app/app/post`, `src/app/app/rides` |
+| Empty-leg listings | `003_empty_legs.sql`, `src/lib/types/empty-leg.ts`, `src/app/app/post`, `src/app/app/rides` |
 | Driver verification (Cyprus districts, licence types) | `004_driver_verification.sql`, `src/app/admin/verifications` — licence district enum covers nicosia/limassol/larnaca/paphos/famagusta |
 | Airport queue (LCA, PFO) | `007_airport_earnings.sql`, `src/app/app/airport/AirportQueueClient.tsx` |
 | Subscription monetisation (free/plus/pro) | `002_option_c_monetisation.sql`, `src/app/app/upgrade`, Stripe SDK wired |
@@ -25,17 +27,39 @@ strategy:
 | Fleet / admin / verification panel | `008_fleet_admin.sql`, `src/app/admin/*` |
 | Earnings tracking | `src/app/app/earnings`, `src/app/app/earnings/EarningsClient.tsx` |
 | Flight tracker stub | `src/app/app/flights/page.tsx` (`flights.auto_ride` key in i18n) |
-| Greek/English UI | `src/lib/i18n.ts` (98 keys, locale defaults to `el`) |
+| Greek/English UI | `src/lib/i18n.ts`, locale defaults to `el` |
 | Leg lifecycle state machine | `src/lib/services/leg-lifecycle.ts`, `leg_status` enum has all nine states |
 | Real-time updates | `src/lib/hooks/useRealtimeLegs.ts` (Supabase Realtime) |
 | Corporate accounts | `src/app/app/corporate/page.tsx` |
 | Community feed | `006_feed_community.sql`, `src/app/app/feed` |
 | Beta gating | `src/lib/config/beta.ts` |
 
-The scaffold is further along than the strategy document assumes. The work
-ahead is less about building from zero and more about closing specific gaps
-between a generic ride-share-style app and a Cyprus-specific empty-leg
-marketplace.
+### 1.2 Spec-era deliverables (migrations 009–014)
+
+| Strategy pillar | Implementation | Sprint |
+|---|---|---|
+| Regulated pricing engine (floor/ceiling/suggested) | `009_pricing_regulation.sql`, `src/lib/services/pricing.ts`, `src/lib/services/whatsapp/meter-lookup.ts` | 9 |
+| Greek-first regulatory copy | `src/lib/i18n.ts` rewrite | 10 |
+| WhatsApp bot (text + voice) | `011_whatsapp.sql`, `012_ai_extractions.sql`, `src/lib/services/whatsapp/*`, `src/lib/services/ai/*`, `src/app/api/whatsapp/webhook` | 11 – 12 |
+| Flight auto-match cron + driver inbox | `010_flight_matches.sql`, `src/lib/services/flight-match/*`, `src/app/api/flights/poll`, `src/app/api/flight-matches`, `src/app/app/flights/suggestions` | 13 |
+| Drop-density heatmap (PostGIS + MapLibre) | `013_postgis_heatmap.sql`, `src/lib/services/heatmap/*`, `src/app/api/heatmap/[z]/[x]/[y]`, `src/app/app/heatmap` | 14 |
+| Hotel concierge portal + embed widget | `014_concierge_tenants.sql`, `src/lib/services/concierge/*`, `src/app/api/concierge/*`, `src/app/concierge/*` | 15 |
+
+### 1.3 Operational posture
+
+- **Sandbox-dark flags** gate every external-contract sprint:
+  `WHATSAPP_BOT_ENABLED` (S11), `WHATSAPP_DEV_STUB` (S11),
+  `FLIGHT_MATCH_ENABLED` (S13). Migrations + service code land
+  immediately; flipping the flag is a one-line change once credentials land.
+- **Defense-in-depth** on the regulatory ceiling: `pricing.ts` enforces in
+  application, and `empty_legs` + `concierge_bookings` each carry a DB-level
+  CHECK that `asking/quoted price <= pricing_ceiling_eur`.
+- **Claude prompt caching** is on for the extraction path; new Claude
+  callers should follow the same shape (see §7).
+- **Test suite**: 93 service-level tests running via `npx tsx`, covering
+  pricing (17), WhatsApp parser (23), voice pipeline (7), Twilio signature
+  (7), district resolver (4), Claude extraction (8), flight matcher (9),
+  flight-match service (4), heatmap tiles (7), tenant scope (7).
 
 ---
 
@@ -44,36 +68,38 @@ marketplace.
 The strategy document makes claims the codebase does not yet back. Each gap
 below is a concrete engineering deliverable.
 
-### 2.1 High-priority gaps (Q1–Q2)
+### 2.1 High-priority gaps (Q1–Q2)  — all closed
 
-1. **WhatsApp / Viber voice-note listing bot** — strategy §3.3 calls this the
-   single highest adoption lever for drivers aged 50+. Not present.
-2. **Flight auto-match with dynamic pricing** — a `flights` route exists but
-   there is no integration with FlightAware / AviationStack / Hermes Airports
-   feeds, and no auto-generated leg suggestions priced against inbound load.
-3. **Dynamic pricing engine with regulated-meter floor** — `asking_price` is
-   a free-form decimal. Strategy §3 requires a pricing service that enforces
-   `0.4–0.6 × regulated_meter` as floor and `0.9 × regulated_meter` as ceiling,
-   with time-to-departure, seasonality, and direction multipliers.
-4. **Live empty-leg heatmap** — no spatial index, no tile service, no map
-   UI. Strategy §3.1 positions this as the daily-engagement hook.
-5. **Greek-first regulatory framing in UI copy** — current `i18n.ts` ships
-   the marketing line *"Share the road, share the cost"* (carpool framing).
-   Strategy §2 mandates *"Γέμισε το άδειο ταξί σου στον δρόμο της επιστροφής"*
-   and explicit "no commission, no boss" language.
+1. ✅ **WhatsApp / Viber voice-note listing bot** — closed by S11 (text) and
+   S12 (voice + LLM extraction). Ships dark behind `WHATSAPP_BOT_ENABLED`
+   until the Twilio contract lands.
+2. ✅ **Flight auto-match with dynamic pricing** — closed by S13. Ships dark
+   behind `FLIGHT_MATCH_ENABLED` until the AviationStack contract lands.
+3. ✅ **Dynamic pricing engine with regulated-meter floor** — closed by S9.
+   `pricing.ts` is the single source of truth for every quoted price across
+   driver post, WhatsApp bot, flight-match suggestions, and the concierge
+   portal. DB CHECKs on both `empty_legs` and `concierge_bookings` enforce
+   the ceiling as defense in depth.
+4. ✅ **Live empty-leg heatmap** — closed by S14 on PostGIS + MapLibre + OSM.
+5. ✅ **Greek-first regulatory framing in UI copy** — closed by S10.
 
 ### 2.2 Medium-priority gaps (Q3)
 
-6. **Hotel concierge SaaS portal** — separate tenant model, per-property
-   seats, booking widget embeddable in PMS systems (Protel, RoomRaccoon).
+6. ✅ **Hotel concierge SaaS portal** — closed by S15. Tenant model, staff
+   memberships, embeddable quote widget (quote-only in v1; full booking
+   over the unauthenticated iframe is deferred until captcha + rate-limit
+   land).
 7. **Multilingual passenger booking page** — i18n covers EN/EL only;
-   strategy requires EN/EL/RU/HE/DE for the passenger-facing page.
+   strategy requires EN/EL/RU/HE/DE for the passenger-facing page. Tracked
+   as S19.
 8. **JCC Payments (Cyprus local processor)** — Stripe alone is insufficient
    for Cypriot SME adoption; JCC is the domestic gateway most local
-   businesses use.
+   businesses use. Tracked as S16. Merchant account is the sandbox
+   blocker; code ships dark behind `JCC_ENABLED` once drafted.
 9. **VAT / social-insurance dashboard** — `earnings` page tracks totals but
    does not produce the quarterly Cypriot social-insurance (GESY + Social
    Insurance) export or a VAT-registered filing once a driver passes €15,600.
+   Tracked as S17; ships when 6 months of real listings exist.
 
 ### 2.3 Lower-priority gaps (Q4+)
 
@@ -348,16 +374,17 @@ block on credential availability.
 | 12 | Voice-note transcription + LLM extraction | ✅ shipped dark (flips on same flag as S11; Claude prompt caching on) | Sprint 11 |
 | 13 | Flight auto-match cron + suggestions UI | ✅ shipped dark (`FLIGHT_MATCH_ENABLED=false` until AviationStack contract lands) | AviationStack contract, pricing service |
 | 14 | PostGIS migration + heatmap MVP | ✅ shipped (MapLibre + OSM path, no Mapbox token needed) | — |
-| 15 | Hotel concierge portal skeleton + embed widget | next | Tenant model, pricing service |
-| 16 | JCC Payments integration | — |
-| 17 | Tax / VAT export dashboard v1 | Earnings data, 6 months of real listings |
-| 18 | Peer-handoff flow | Trusted-driver graph (new) |
-| 19 | RU/HE/DE localisation of passenger booking page | — |
-| 20 | Off-season commuter subscription product | — |
+| 15 | Hotel concierge portal skeleton + embed widget | ✅ shipped (request-first bookings; quote-only embed until captcha + rate-limit land) | Tenant model, pricing service |
+| 16 | JCC Payments integration | next (sandbox-dark) | JCC merchant account |
+| 17 | Tax / VAT export dashboard v1 | planned | Earnings data, 6 months of real listings |
+| 18 | Peer-handoff flow | planned | Trusted-driver graph (new) |
+| 19 | RU/HE/DE localisation of passenger booking page | planned | — |
+| 20 | Off-season commuter subscription product | planned | — |
 
 Sprints 9–12 are the minimum defensible launch. Skipping any of them means
 either regulatory exposure (no pricing floor), adoption failure (no WhatsApp),
-or both.
+or both. **All seven of 9–15 have now shipped**; 11–13 are dark pending
+external contracts.
 
 ---
 
