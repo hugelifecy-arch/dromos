@@ -6,12 +6,12 @@ const plans = [
   {
     name: 'Free',
     price: 0,
-    description: 'Perfect for occasional riders',
+    description: 'For drivers trying the platform',
     features: [
-      'Post & book unlimited rides',
+      'Post & claim unlimited empty legs',
       'Community feed',
       'Basic messaging',
-      `${(COMMISSION_RATES.free * 100).toFixed(0)}% commission on driver earnings`,
+      `${(COMMISSION_RATES.free * 100).toFixed(0)}% commission on leg earnings`,
     ],
     cta: 'Get Started',
     highlight: false,
@@ -21,13 +21,13 @@ const plans = [
     price: SUBSCRIPTION_PRICES.plus.monthly,
     yearlyPrice: SUBSCRIPTION_PRICES.plus.yearly,
     icon: Zap,
-    description: 'For regular commuters',
+    description: 'For working drivers posting weekly',
     features: [
       'Everything in Free',
       `Only ${(COMMISSION_RATES.plus * 100).toFixed(0)}% commission`,
-      'Priority in search results',
-      'Flight tracking & auto-rides',
-      'Ride analytics dashboard',
+      'Priority in empty-leg search results',
+      'Flight tracking & auto-leg suggestions',
+      'Leg & earnings analytics dashboard',
     ],
     cta: 'Start Plus',
     highlight: true,
@@ -37,14 +37,14 @@ const plans = [
     price: SUBSCRIPTION_PRICES.pro.monthly,
     yearlyPrice: SUBSCRIPTION_PRICES.pro.yearly,
     icon: Crown,
-    description: 'For power drivers & corporates',
+    description: 'For full-time drivers & fleet operators',
     features: [
       'Everything in Plus',
       `Only ${(COMMISSION_RATES.pro * 100).toFixed(0)}% commission`,
       'Verified profile badge',
-      'Corporate account access',
+      'Fleet & corporate account access',
       'Priority customer support',
-      'Advanced analytics & reports',
+      'Advanced analytics & VAT-ready exports',
     ],
     cta: 'Start Pro',
     highlight: false,
@@ -65,8 +65,9 @@ export default function PricingPage() {
       </nav>
 
       <section className="max-w-5xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">Simple, transparent pricing</h1>
-        <p className="text-surface-400 text-lg mb-12">Choose the plan that fits your ride-sharing needs.</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">Απλή, διάφανη τιμολόγηση</h1>
+        <p className="text-surface-300 text-lg mb-1">Simple, transparent pricing.</p>
+        <p className="text-surface-400 text-base mb-12">Flat subscription, no commission games. Pick the plan that matches how much you drive.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {plans.map((plan) => (

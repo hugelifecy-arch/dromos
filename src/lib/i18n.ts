@@ -1,100 +1,132 @@
 export type Locale = 'el' | 'en';
 
+// Greek-first. The primary audience is the 50+ Greek-Cypriot owner-operator
+// driver. English is the secondary locale, retained for tourist-facing flows
+// and for Cypriot drivers who prefer it. Every entry lists `el` before `en`.
+//
+// Vocabulary: this is an empty-leg marketplace for licensed taxi drivers. It
+// is NOT a carpool, ride-share, or consumer app. Copy avoids "share the ride",
+// "carpool", "seats left", "book a ride", etc. Where a word like "seat" is
+// still needed (vehicle capacity), it refers to the vehicle, not the listing.
 const translations = {
   // Navigation
-  'nav.feed': { en: 'Feed', el: 'Ροή' },
-  'nav.rides': { en: 'Rides', el: 'Διαδρομές' },
-  'nav.post': { en: 'Post', el: 'Δημοσίευση' },
-  'nav.messages': { en: 'Messages', el: 'Μηνύματα' },
-  'nav.profile': { en: 'Profile', el: 'Προφίλ' },
+  'nav.feed': { el: 'Ροή', en: 'Feed' },
+  'nav.legs': { el: 'Άδεια σκέλη', en: 'Empty Legs' },
+  'nav.post': { el: 'Δημοσίευση', en: 'Post Leg' },
+  'nav.messages': { el: 'Μηνύματα', en: 'Messages' },
+  'nav.profile': { el: 'Προφίλ', en: 'Profile' },
+  'nav.airport': { el: 'Αεροδρόμιο', en: 'Airport' },
+  'nav.earnings': { el: 'Έσοδα', en: 'Earnings' },
 
   // Auth
-  'auth.login': { en: 'Sign In', el: 'Σύνδεση' },
-  'auth.signup': { en: 'Sign Up', el: 'Εγγραφή' },
-  'auth.logout': { en: 'Sign Out', el: 'Αποσύνδεση' },
-  'auth.email': { en: 'Email', el: 'Email' },
-  'auth.password': { en: 'Password', el: 'Κωδικός' },
-  'auth.continue_google': { en: 'Continue with Google', el: 'Συνέχεια με Google' },
-  'auth.onboarding.title': { en: 'Complete your profile', el: 'Ολοκλήρωσε το προφίλ σου' },
-  'auth.onboarding.name': { en: 'Full Name', el: 'Ονοματεπώνυμο' },
-  'auth.onboarding.phone': { en: 'Phone Number', el: 'Τηλέφωνο' },
-  'auth.onboarding.bio': { en: 'Short Bio', el: 'Σύντομο βιογραφικό' },
-  'auth.onboarding.driver': { en: 'I want to offer rides', el: 'Θέλω να προσφέρω διαδρομές' },
+  'auth.login': { el: 'Σύνδεση', en: 'Sign In' },
+  'auth.signup': { el: 'Εγγραφή', en: 'Sign Up' },
+  'auth.logout': { el: 'Αποσύνδεση', en: 'Sign Out' },
+  'auth.email': { el: 'Email', en: 'Email' },
+  'auth.password': { el: 'Κωδικός', en: 'Password' },
+  'auth.continue_google': { el: 'Συνέχεια με Google', en: 'Continue with Google' },
+  'auth.onboarding.title': { el: 'Ολοκλήρωσε το προφίλ οδηγού', en: 'Complete your driver profile' },
+  'auth.onboarding.name': { el: 'Ονοματεπώνυμο', en: 'Full Name' },
+  'auth.onboarding.phone': { el: 'Τηλέφωνο', en: 'Phone Number' },
+  'auth.onboarding.bio': { el: 'Σύντομο βιογραφικό', en: 'Short Bio' },
+  'auth.onboarding.driver_only': { el: 'Αυτή η πλατφόρμα είναι μόνο για αδειοδοτημένους οδηγούς ταξί', en: 'This platform is for licensed taxi drivers only' },
 
-  // Rides
-  'ride.from': { en: 'From', el: 'Από' },
-  'ride.to': { en: 'To', el: 'Προς' },
-  'ride.when': { en: 'When', el: 'Πότε' },
-  'ride.seats': { en: 'Seats', el: 'Θέσεις' },
-  'ride.price': { en: 'Price', el: 'Τιμή' },
-  'ride.per_seat': { en: 'per seat', el: 'ανά θέση' },
-  'ride.book': { en: 'Book Ride', el: 'Κράτηση' },
-  'ride.post': { en: 'Post a Ride', el: 'Δημοσίευση Διαδρομής' },
-  'ride.search': { en: 'Search Rides', el: 'Αναζήτηση Διαδρομών' },
-  'ride.no_results': { en: 'No rides found', el: 'Δεν βρέθηκαν διαδρομές' },
-  'ride.seats_left': { en: 'seats left', el: 'θέσεις απομένουν' },
-  'ride.details': { en: 'Ride Details', el: 'Λεπτομέρειες Διαδρομής' },
+  // Empty legs (was "Rides" — drivers list the empty segment they are about
+  // to drive, another licensed driver claims it. No passengers sign up here.)
+  'leg.from': { el: 'Από', en: 'From' },
+  'leg.to': { el: 'Προς', en: 'To' },
+  'leg.when': { el: 'Αναχώρηση', en: 'Departure' },
+  'leg.vehicle_capacity': { el: 'Θέσεις οχήματος', en: 'Vehicle capacity' },
+  'leg.price': { el: 'Τιμή σκέλους', en: 'Leg price' },
+  'leg.claim': { el: 'Ανάληψη σκέλους', en: 'Claim leg' },
+  'leg.post': { el: 'Δημοσίευσε άδειο σκέλος', en: 'Post an empty leg' },
+  'leg.search': { el: 'Αναζήτηση άδειων σκελών', en: 'Browse empty legs' },
+  'leg.no_results': { el: 'Δεν υπάρχουν διαθέσιμα σκέλη', en: 'No empty legs available' },
+  'leg.details': { el: 'Λεπτομέρειες σκέλους', en: 'Leg details' },
+  'leg.regulated_meter': { el: 'Ταρίφα μετρητή', en: 'Regulated meter reference' },
+  'leg.discount_voucher': { el: 'Έκπτωση οδηγού', en: 'Driver-set discount' },
+  'leg.your_asking': { el: 'Η τιμή σου', en: 'Your asking price' },
 
   // Feed
-  'feed.title': { en: 'Community Feed', el: 'Κοινότητα' },
-  'feed.whats_new': { en: "What's on your mind?", el: 'Τι σκέφτεσαι;' },
-  'feed.post': { en: 'Post', el: 'Δημοσίευση' },
-  'feed.like': { en: 'Like', el: 'Like' },
-  'feed.comment': { en: 'Comment', el: 'Σχόλιο' },
+  'feed.title': { el: 'Ροή συναδέλφων', en: 'Driver Feed' },
+  'feed.whats_new': { el: 'Τι νέα από τον δρόμο;', en: "What's happening on the road?" },
+  'feed.post': { el: 'Δημοσίευση', en: 'Post' },
+  'feed.like': { el: 'Μου αρέσει', en: 'Like' },
+  'feed.comment': { el: 'Σχόλιο', en: 'Comment' },
 
   // Messages
-  'messages.title': { en: 'Messages', el: 'Μηνύματα' },
-  'messages.new': { en: 'New Message', el: 'Νέο Μήνυμα' },
-  'messages.placeholder': { en: 'Type a message...', el: 'Γράψε ένα μήνυμα...' },
-  'messages.empty': { en: 'No messages yet', el: 'Δεν υπάρχουν μηνύματα' },
+  'messages.title': { el: 'Μηνύματα', en: 'Messages' },
+  'messages.new': { el: 'Νέο μήνυμα', en: 'New message' },
+  'messages.placeholder': { el: 'Γράψε ένα μήνυμα…', en: 'Type a message…' },
+  'messages.empty': { el: 'Κανένα μήνυμα ακόμη', en: 'No messages yet' },
 
   // Profile
-  'profile.title': { en: 'Profile', el: 'Προφίλ' },
-  'profile.edit': { en: 'Edit Profile', el: 'Επεξεργασία' },
-  'profile.rides_taken': { en: 'Rides Taken', el: 'Διαδρομές' },
-  'profile.rides_given': { en: 'Rides Given', el: 'Οδηγήσεις' },
-  'profile.rating': { en: 'Rating', el: 'Βαθμολογία' },
-  'profile.verified': { en: 'Verified', el: 'Επιβεβαιωμένο' },
-  'profile.member_since': { en: 'Member since', el: 'Μέλος από' },
+  'profile.title': { el: 'Προφίλ οδηγού', en: 'Driver profile' },
+  'profile.edit': { el: 'Επεξεργασία', en: 'Edit profile' },
+  'profile.legs_completed': { el: 'Ολοκληρωμένα σκέλη', en: 'Completed legs' },
+  'profile.legs_posted': { el: 'Δημοσιευμένα σκέλη', en: 'Posted legs' },
+  'profile.rating': { el: 'Βαθμολογία', en: 'Rating' },
+  'profile.verified': { el: 'Επιβεβαιωμένη άδεια', en: 'Licence verified' },
+  'profile.member_since': { el: 'Μέλος από', en: 'Member since' },
 
   // Earnings
-  'earnings.title': { en: 'Earnings', el: 'Κέρδη' },
-  'earnings.total': { en: 'Total Earned', el: 'Σύνολο Κερδών' },
-  'earnings.pending': { en: 'Pending', el: 'Εκκρεμότητα' },
-  'earnings.this_month': { en: 'This Month', el: 'Αυτόν τον Μήνα' },
+  'earnings.title': { el: 'Έσοδα', en: 'Earnings' },
+  'earnings.total': { el: 'Σύνολο εσόδων', en: 'Total earned' },
+  'earnings.pending': { el: 'Σε εκκρεμότητα', en: 'Pending' },
+  'earnings.this_month': { el: 'Αυτόν τον μήνα', en: 'This month' },
+  'earnings.tax_export': { el: 'Εξαγωγή για λογιστή', en: 'Export for accountant' },
 
-  // Subscription
-  'upgrade.title': { en: 'Upgrade Your Plan', el: 'Αναβάθμιση Πλάνου' },
-  'upgrade.free': { en: 'Free', el: 'Δωρεάν' },
-  'upgrade.plus': { en: 'Plus', el: 'Plus' },
-  'upgrade.pro': { en: 'Pro', el: 'Pro' },
-  'upgrade.current': { en: 'Current Plan', el: 'Τρέχον Πλάνο' },
-  'upgrade.select': { en: 'Select Plan', el: 'Επιλογή' },
+  // Subscription — "no commission" is the anchor message.
+  'upgrade.title': { el: 'Αναβάθμιση πλάνου', en: 'Upgrade your plan' },
+  'upgrade.free': { el: 'Δωρεάν', en: 'Free' },
+  'upgrade.plus': { el: 'Plus', en: 'Plus' },
+  'upgrade.pro': { el: 'Pro', en: 'Pro' },
+  'upgrade.current': { el: 'Τρέχον πλάνο', en: 'Current plan' },
+  'upgrade.select': { el: 'Επιλογή', en: 'Select plan' },
+  'upgrade.no_commission': { el: 'Καμία προμήθεια. Πάγια συνδρομή, τίποτα περισσότερο.', en: 'No commission. Flat subscription, nothing else.' },
 
   // Corporate
-  'corporate.title': { en: 'Corporate Account', el: 'Εταιρικός Λογαριασμός' },
-  'corporate.members': { en: 'Team Members', el: 'Μέλη Ομάδας' },
-  'corporate.budget': { en: 'Monthly Budget', el: 'Μηνιαίος Προϋπολογισμός' },
+  'corporate.title': { el: 'Εταιρικός λογαριασμός', en: 'Corporate account' },
+  'corporate.members': { el: 'Μέλη ομάδας', en: 'Team members' },
+  'corporate.budget': { el: 'Μηνιαίος προϋπολογισμός', en: 'Monthly budget' },
 
   // Flights
-  'flights.title': { en: 'Flight Tracker', el: 'Παρακολούθηση Πτήσεων' },
-  'flights.add': { en: 'Track Flight', el: 'Παρακολούθηση Πτήσης' },
-  'flights.number': { en: 'Flight Number', el: 'Αριθμός Πτήσης' },
-  'flights.date': { en: 'Date', el: 'Ημερομηνία' },
-  'flights.status': { en: 'Status', el: 'Κατάσταση' },
-  'flights.auto_ride': { en: 'Auto-create ride on arrival', el: 'Αυτόματη δημιουργία διαδρομής' },
+  'flights.title': { el: 'Παρακολούθηση πτήσεων', en: 'Flight tracker' },
+  'flights.add': { el: 'Παρακολούθηση πτήσης', en: 'Track flight' },
+  'flights.number': { el: 'Αριθμός πτήσης', en: 'Flight number' },
+  'flights.date': { el: 'Ημερομηνία', en: 'Date' },
+  'flights.status': { el: 'Κατάσταση', en: 'Status' },
+  'flights.auto_leg': { el: 'Αυτόματη πρόταση σκέλους στην άφιξη', en: 'Suggest a leg on arrival' },
 
   // General
-  'general.save': { en: 'Save', el: 'Αποθήκευση' },
-  'general.cancel': { en: 'Cancel', el: 'Ακύρωση' },
-  'general.loading': { en: 'Loading...', el: 'Φόρτωση...' },
-  'general.error': { en: 'Something went wrong', el: 'Κάτι πήγε στραβά' },
-  'general.empty': { en: 'Nothing here yet', el: 'Τίποτα ακόμα' },
+  'general.save': { el: 'Αποθήκευση', en: 'Save' },
+  'general.cancel': { el: 'Ακύρωση', en: 'Cancel' },
+  'general.loading': { el: 'Φόρτωση…', en: 'Loading…' },
+  'general.error': { el: 'Κάτι πήγε στραβά', en: 'Something went wrong' },
+  'general.empty': { el: 'Τίποτα ακόμη', en: 'Nothing here yet' },
 
-  // Landing
-  'landing.hero': { en: 'Share the road, share the cost', el: 'Μοιράσου τη διαδρομή, μοιράσου το κόστος' },
-  'landing.subtitle': { en: 'Connect with drivers and passengers heading your way. Save money, reduce traffic, meet great people.', el: 'Βρες οδηγούς και συνεπιβάτες στην κατεύθυνσή σου. Εξοικονόμησε, μείωσε την κίνηση, γνώρισε ανθρώπους.' },
-  'landing.cta': { en: 'Get Started', el: 'Ξεκίνα Τώρα' },
+  // Landing — Greek-first. Hero is the strategy §2 one-liner verbatim.
+  'landing.hero': {
+    el: 'Γέμισε το άδειο ταξί σου στον δρόμο της επιστροφής.',
+    en: 'Fill your empty taxi on the way back.',
+  },
+  'landing.subtitle': {
+    el: 'Είσαι ήδη στον δρόμο — πληρώσου γι’ αυτόν. Η αγορά άδειων σκελών για αδειοδοτημένους οδηγούς ταξί στην Κύπρο.',
+    en: "You're already driving — get paid for it. The empty-leg marketplace for licensed Cyprus taxi drivers.",
+  },
+  'landing.pillar_income': {
+    el: 'Ανακτάς χαμένο εισόδημα, δεν φορτώνεις νέα δουλειά.',
+    en: 'Recover lost income, not new work.',
+  },
+  'landing.pillar_no_commission': {
+    el: 'Καμία προμήθεια. Κανένα αφεντικό. Καμία εφαρμογή να σου φωνάζει.',
+    en: 'No commission. No boss. No app shouting at you.',
+  },
+  'landing.pillar_cyprus': {
+    el: 'Κυπριακή πλατφόρμα. Τα δεδομένα σου μένουν εδώ.',
+    en: 'Cyprus-owned, Cyprus-made. Your data stays here.',
+  },
+  'landing.cta': { el: 'Ξεκίνα τώρα', en: 'Get Started' },
 } as const;
 
 type TranslationKey = keyof typeof translations;
@@ -102,7 +134,7 @@ type TranslationKey = keyof typeof translations;
 export function t(key: TranslationKey, locale: Locale = 'el'): string {
   const entry = translations[key];
   if (!entry) return key;
-  return entry[locale] || entry.en;
+  return entry[locale] || entry.el;
 }
 
 export function useTranslation(locale: Locale = 'el') {
