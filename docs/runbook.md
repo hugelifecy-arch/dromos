@@ -144,9 +144,15 @@ route plausibly feeds an inbound passenger. Drivers see the inbox at
    calls/month). Free tier caps at 100 which is too tight for a 15-min
    cron covering both airports.
 2. Copy the access key into `AVIATIONSTACK_ACCESS_KEY`.
-3. Mint a long random string and set it as `FLIGHT_MATCH_CRON_SECRET`.
-4. Configure the scheduler (Vercel Cron, GitHub Actions, whatever is in
-   play) to:
+3. Mint a long random string and set it as **both** `FLIGHT_MATCH_CRON_SECRET`
+   (what the route validates) **and** `CRON_SECRET` (what Vercel Cron sends
+   in the `Authorization: Bearer …` header). Same value in both. If you
+   use an external scheduler instead of Vercel Cron, only
+   `FLIGHT_MATCH_CRON_SECRET` is needed — configure the scheduler to send
+   the bearer header itself.
+4. Vercel Cron is wired in `vercel.json` (`*/15 * * * *` → `/api/flights/poll`).
+   If you use a different scheduler, remove that entry and point your
+   scheduler at:
    ```
    POST https://<host>/api/flights/poll
    Authorization: Bearer <FLIGHT_MATCH_CRON_SECRET>
