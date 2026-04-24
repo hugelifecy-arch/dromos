@@ -12,7 +12,7 @@ data-model, API, integration, and compliance work.
 ## 1. State of the Build (what already exists)
 
 The repository is a Next.js 15 + React 19 + Supabase + Stripe application
-with **fourteen migrations** shipped through Sprint 15. What now exists,
+with **sixteen migrations** shipped through Sprint 17. What now exists,
 grouped by strategy pillar:
 
 ### 1.1 Pre-spec scaffold (migrations 001–008)
@@ -34,7 +34,7 @@ grouped by strategy pillar:
 | Community feed | `006_feed_community.sql`, `src/app/app/feed` |
 | Beta gating | `src/lib/config/beta.ts` |
 
-### 1.2 Spec-era deliverables (migrations 009–014)
+### 1.2 Spec-era deliverables (migrations 009–016)
 
 | Strategy pillar | Implementation | Sprint |
 |---|---|---|
@@ -44,22 +44,28 @@ grouped by strategy pillar:
 | Flight auto-match cron + driver inbox | `010_flight_matches.sql`, `src/lib/services/flight-match/*`, `src/app/api/flights/poll`, `src/app/api/flight-matches`, `src/app/app/flights/suggestions` | 13 |
 | Drop-density heatmap (PostGIS + MapLibre) | `013_postgis_heatmap.sql`, `src/lib/services/heatmap/*`, `src/app/api/heatmap/[z]/[x]/[y]`, `src/app/app/heatmap` | 14 |
 | Hotel concierge portal + embed widget | `014_concierge_tenants.sql`, `src/lib/services/concierge/*`, `src/app/api/concierge/*`, `src/app/concierge/*` | 15 |
+| JCC Payments (Cyprus domestic processor) | `015_jcc_payments.sql`, `src/lib/services/jcc/*`, `src/app/api/payments/jcc/*`, picker on `src/app/app/upgrade/page.tsx` | 16 |
+| Tax / VAT export dashboard (quarterly SI + GESY + VAT) | `016_tax_exports.sql`, `src/lib/services/tax/*`, `src/app/api/tax/export`, `src/app/app/earnings/tax` | 17 |
 
 ### 1.3 Operational posture
 
 - **Sandbox-dark flags** gate every external-contract sprint:
   `WHATSAPP_BOT_ENABLED` (S11), `WHATSAPP_DEV_STUB` (S11),
-  `FLIGHT_MATCH_ENABLED` (S13). Migrations + service code land
-  immediately; flipping the flag is a one-line change once credentials land.
+  `FLIGHT_MATCH_ENABLED` (S13), `JCC_ENABLED` (S16). Migrations + service
+  code land immediately; flipping the flag is a one-line change once
+  credentials land. Full operational details, including the per-flag
+  verification checklist after a flip, live in
+  [`runbook.md`](./runbook.md).
 - **Defense-in-depth** on the regulatory ceiling: `pricing.ts` enforces in
   application, and `empty_legs` + `concierge_bookings` each carry a DB-level
   CHECK that `asking/quoted price <= pricing_ceiling_eur`.
 - **Claude prompt caching** is on for the extraction path; new Claude
   callers should follow the same shape (see §7).
-- **Test suite**: 93 service-level tests running via `npx tsx`, covering
+- **Test suite**: 127 service-level tests running via `npx tsx`, covering
   pricing (17), WhatsApp parser (23), voice pipeline (7), Twilio signature
   (7), district resolver (4), Claude extraction (8), flight matcher (9),
-  flight-match service (4), heatmap tiles (7), tenant scope (7).
+  flight-match service (4), heatmap tiles (7), tenant scope (7), JCC
+  signature (10), JCC gateway (7), tax compute (11), tax serialise (6).
 
 ---
 
@@ -92,14 +98,15 @@ below is a concrete engineering deliverable.
 7. **Multilingual passenger booking page** — i18n covers EN/EL only;
    strategy requires EN/EL/RU/HE/DE for the passenger-facing page. Tracked
    as S19.
-8. **JCC Payments (Cyprus local processor)** — Stripe alone is insufficient
-   for Cypriot SME adoption; JCC is the domestic gateway most local
-   businesses use. Tracked as S16. Merchant account is the sandbox
-   blocker; code ships dark behind `JCC_ENABLED` once drafted.
-9. **VAT / social-insurance dashboard** — `earnings` page tracks totals but
-   does not produce the quarterly Cypriot social-insurance (GESY + Social
-   Insurance) export or a VAT-registered filing once a driver passes €15,600.
-   Tracked as S17; ships when 6 months of real listings exist.
+8. ✅ **JCC Payments (Cyprus local processor)** — closed by S16. Ships dark
+   behind `JCC_ENABLED`; merchant account + production secret are the
+   sandbox blocker. `/app/upgrade` has a Stripe/JCC picker wired; JCC path
+   is quote-only until recurring billing (Payment Agreement API) lands.
+9. ✅ **VAT / social-insurance dashboard** — closed by S17. Pure-function
+   math against `transactions` (Social Insurance 16.6%, GESY 4%, VAT 19%
+   once trailing-12m turnover ≥ €15,600). CSV is usable today; XML uses a
+   placeholder schema until ops reconciles the TAXISnet field map through
+   a real filing.
 
 ### 2.3 Lower-priority gaps (Q4+)
 
@@ -375,16 +382,17 @@ block on credential availability.
 | 13 | Flight auto-match cron + suggestions UI | ✅ shipped dark (`FLIGHT_MATCH_ENABLED=false` until AviationStack contract lands) | AviationStack contract, pricing service |
 | 14 | PostGIS migration + heatmap MVP | ✅ shipped (MapLibre + OSM path, no Mapbox token needed) | — |
 | 15 | Hotel concierge portal skeleton + embed widget | ✅ shipped (request-first bookings; quote-only embed until captcha + rate-limit land) | Tenant model, pricing service |
-| 16 | JCC Payments integration | next (sandbox-dark) | JCC merchant account |
-| 17 | Tax / VAT export dashboard v1 | planned | Earnings data, 6 months of real listings |
+| 16 | JCC Payments integration | ✅ shipped dark (`JCC_ENABLED=false` until merchant account + production secret land; `/app/upgrade` Stripe/JCC picker wired) | JCC merchant account |
+| 17 | Tax / VAT export dashboard v1 | ✅ shipped (CSV live; XML uses `schema="placeholder-v1"` until TAXISnet field map reconciled through a first real filing) | Earnings data, 6 months of real listings |
 | 18 | Peer-handoff flow | planned | Trusted-driver graph (new) |
 | 19 | RU/HE/DE localisation of passenger booking page | planned | — |
 | 20 | Off-season commuter subscription product | planned | — |
 
 Sprints 9–12 are the minimum defensible launch. Skipping any of them means
 either regulatory exposure (no pricing floor), adoption failure (no WhatsApp),
-or both. **All seven of 9–15 have now shipped**; 11–13 are dark pending
-external contracts.
+or both. **All nine of 9–17 have now shipped**; 11–13 + 16 are dark pending
+external contracts — see [`runbook.md`](./runbook.md) for the flag list and
+the post-credential verification checklist.
 
 ---
 
