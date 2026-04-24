@@ -182,6 +182,44 @@ export async function runExtractTests(): Promise<{ passed: number; failed: numbe
     assert.equal(parsed.model, CLAUDE_MODEL);
   }, results);
 
+  await runCase('system block is cacheable and byte-stable across calls', async () => {
+    const bodies: string[] = [];
+    const fetchImpl = fakeFetch(
+      claudeTextResponse(JSON.stringify({
+        originDistrict: 'larnaca',
+        destinationDistrict: 'limassol',
+        departureLocal: { hour: 9, minute: 0, dayOffset: 0, hadExplicitDate: false },
+      })),
+      200,
+      (_url, init) => { bodies.push(typeof init.body === 'string' ? init.body : ''); },
+    );
+    const call = (nowIso: string) =>
+      extractLegFromTranscript({
+        apiKey: 'sk-abc',
+        transcript: 'Larnaca Limassol',
+        nowIso,
+        fetchImpl,
+      });
+    await call('2026-04-24T10:00:00+03:00');
+    await call('2026-04-25T11:30:00+03:00');
+
+    assert.equal(bodies.length, 2);
+    const first = JSON.parse(bodies[0]);
+    const second = JSON.parse(bodies[1]);
+
+    // System must be a content-block array with cache_control set. The second
+    // call must reuse the exact same system payload so Anthropic's prompt
+    // cache can hit; per-call state (nowIso) has to live in the user turn.
+    assert.ok(Array.isArray(first.system), 'system should be a content-block array');
+    assert.equal(first.system.length, 1);
+    assert.equal(first.system[0].type, 'text');
+    assert.deepEqual(first.system[0].cache_control, { type: 'ephemeral' });
+    assert.equal(first.system[0].text, second.system[0].text);
+
+    // And conversely: the user turn MUST differ (nowIso travels there now).
+    assert.notEqual(first.messages[0].content, second.messages[0].content);
+  }, results);
+
   const passed = results.filter((r) => r.passed).length;
   const failed = results.length - passed;
   return { passed, failed, results };

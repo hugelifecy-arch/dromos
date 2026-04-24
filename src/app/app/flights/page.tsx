@@ -76,6 +76,12 @@ export default function FlightsPage() {
         </Link>
         <Plane className="w-5 h-5 text-brand-400" />
         <h1 className="text-xl font-bold text-white flex-1">Flights</h1>
+        <Link
+          href="/app/flights/suggestions"
+          className="text-xs px-3 py-2 rounded-xl bg-surface-800 text-surface-200 hover:text-white hover:bg-surface-700 transition-colors"
+        >
+          Suggestions
+        </Link>
         <button
           onClick={() => setShowForm(!showForm)}
           className="p-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
