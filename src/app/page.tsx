@@ -3,12 +3,12 @@ import { APP_NAME } from '@/lib/constants';
 import { ArrowRight, Shield, Users, Zap, Car, Plane, Building2 } from 'lucide-react';
 
 const features = [
-  { icon: Car, title: 'Sell Rides', desc: 'Post your empty leg. Set your price. Another driver fills the gap — you earn instead of burning fuel for nothing.' },
-  { icon: Users, title: 'Driver Network', desc: 'Every member is a licensed Cyprus taxi driver, verified before activation. No passengers, no amateurs, no public sign-ups.' },
-  { icon: Plane, title: 'Airport Queue', desc: 'Coordinate Larnaca (LCA) and Paphos (PFO) queue positions. Post your empty inbound or outbound airport leg.' },
-  { icon: Shield, title: 'Licensed Only', desc: 'Taxi licence verification is mandatory. The platform is a closed professional community.' },
-  { icon: Building2, title: 'Fleet Board', desc: 'Fleet operators post and manage legs for all their drivers from one dashboard. Pro-tier (future — inactive during beta).' },
-  { icon: Zap, title: 'Free During Beta', desc: 'Zero commission. Zero subscription. Full access. Early adopters shape the product before pricing is introduced.' },
+  { icon: Car, title: 'Sell Your Empty Leg', desc: 'Post the segment you were about to drive empty. Set your own price. Another licensed driver picks it up — you earn instead of burning fuel for nothing.' },
+  { icon: Users, title: 'Licensed Drivers Only', desc: 'Every member is a licensed Cyprus taxi driver, verified before activation. Driver-to-driver. No passengers, no amateurs, no public sign-ups.' },
+  { icon: Plane, title: 'Airport Queue (LCA / PFO)', desc: 'Coordinate Larnaca and Paphos queue positions. Post your empty inbound or outbound airport leg before you leave the rank.' },
+  { icon: Shield, title: 'No Commission, No Boss', desc: "We don't take a cut per leg. You set the price, you keep it. Flat subscription once beta ends — that's it." },
+  { icon: Building2, title: 'Fleet Board', desc: 'Fleet operators post and manage empty legs for all their drivers from one dashboard. Pro-tier (future — inactive during beta).' },
+  { icon: Zap, title: 'Free During Beta', desc: 'Zero commission. Zero subscription. Full access. Early drivers shape the product before pricing is introduced.' },
 ];
 
 export default function LandingPage() {
@@ -27,13 +27,14 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Hero — Greek-first per Sprint 10 brand framing. */}
       <section className="max-w-5xl mx-auto px-4 py-20 text-center">
-        <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6 leading-tight">
-          Going back empty?<br />Sell the leg.
+        <h1 className="text-4xl sm:text-6xl font-bold text-white mb-4 leading-tight">
+          Γέμισε το άδειο ταξί σου<br />στον δρόμο της επιστροφής.
         </h1>
-        <p className="text-lg sm:text-xl text-surface-400 max-w-2xl mx-auto mb-8">
-          The B2B marketplace for Cyprus taxi drivers to monetise empty legs between fares
+        <p className="text-lg sm:text-2xl text-surface-300 mb-2">Going back empty? Sell the leg.</p>
+        <p className="text-base sm:text-lg text-surface-400 max-w-2xl mx-auto mb-8">
+          The driver-to-driver empty-leg marketplace for licensed Cyprus taxi drivers. No commission. No boss. Cyprus-owned.
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link
@@ -66,8 +67,9 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="border-t border-surface-800 py-16 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Built for Cyprus taxi drivers</h2>
-        <p className="text-surface-400 mb-6">Free during beta. Every verified driver gets full access.</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Φτιαγμένο για Κύπριους οδηγούς ταξί</h2>
+        <p className="text-surface-300 mb-4">Built for Cyprus taxi drivers — by people who understand the rank.</p>
+        <p className="text-surface-400 mb-6">Free during beta. Every verified licensed driver gets full access.</p>
         <Link
           href="/auth/login"
           className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-medium px-8 py-3 rounded-xl transition-colors"
