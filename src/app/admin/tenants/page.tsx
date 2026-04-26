@@ -111,10 +111,12 @@ export default async function AdminTenantsPage() {
               {rows.map((t) => (
                 <tr key={t.id} className="hover:bg-surface-800/40">
                   <td className="px-4 py-3">
-                    <div className="text-white font-medium">{t.name}</div>
-                    {t.contact_email && (
-                      <div className="text-xs text-surface-500">{t.contact_email}</div>
-                    )}
+                    <Link href={`/admin/tenants/${t.id}`} className="block">
+                      <div className="text-white font-medium hover:text-brand-300 transition-colors">{t.name}</div>
+                      {t.contact_email && (
+                        <div className="text-xs text-surface-500">{t.contact_email}</div>
+                      )}
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
