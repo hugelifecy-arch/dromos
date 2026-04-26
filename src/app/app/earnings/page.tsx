@@ -3,6 +3,8 @@ export const metadata = { title: 'Earnings' };
 
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { FileText } from 'lucide-react';
 import { COMMISSION_RATES } from '@/lib/constants';
 import type { SubscriptionTier } from '@/types/database';
 import EarningsClient from './EarningsClient';
@@ -35,8 +37,15 @@ export default async function EarningsPage() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <header className="sticky top-0 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-4 py-3 z-40">
+      <header className="sticky top-0 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-4 py-3 z-40 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Earnings</h1>
+        <Link
+          href="/app/earnings/tax"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-surface-200 text-xs font-medium transition-colors"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          Tax / VAT
+        </Link>
       </header>
 
       <EarningsClient

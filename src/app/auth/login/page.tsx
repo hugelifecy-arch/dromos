@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <Link href="/" className="block text-center mb-8">
           <h1 className="text-3xl font-bold text-white">{APP_NAME}</h1>
-          <p className="text-surface-400 text-sm mt-1">Share rides, save money</p>
+          <p className="text-surface-400 text-sm mt-1">Empty-leg marketplace for Cyprus taxi drivers</p>
         </Link>
 
         <div className="bg-surface-900 rounded-2xl p-6 border border-surface-800">
