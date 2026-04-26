@@ -99,8 +99,8 @@ export default function OnboardingPage() {
               className="w-5 h-5 rounded bg-surface-700 border-surface-600 text-brand-500 focus:ring-brand-500"
             />
             <div>
-              <p className="text-white font-medium">I want to offer rides</p>
-              <p className="text-surface-400 text-sm">You can always change this later</p>
+              <p className="text-white font-medium">I&apos;m a licensed Cyprus taxi driver</p>
+              <p className="text-surface-400 text-sm">Add your vehicle below; submit your licence on the next step.</p>
             </div>
           </label>
 

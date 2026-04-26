@@ -3,7 +3,7 @@ export const metadata = { title: 'Profile' };
 
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
-import { Star, Car, Calendar, Settings, LogOut, TrendingUp, ChevronDown, Users, Plane, Map, Crown } from 'lucide-react';
+import { Star, Car, Calendar, Settings, LogOut, TrendingUp, ChevronDown, Users, Plane, Map, Crown, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { AVATAR_PLACEHOLDER } from '@/lib/constants';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
@@ -31,6 +31,8 @@ export default async function ProfilePage() {
 
   const isVerified = verification?.verification_status === 'approved';
   const isPendingVerification = verification?.verification_status === 'pending';
+  const isRejected = verification?.verification_status === 'rejected';
+  const hasNoVerification = !verification;
 
   const getPlateLastThree = (plate: string | null) => {
     if (!plate) return '';
@@ -121,6 +123,37 @@ export default async function ProfilePage() {
           </div>
         </button>
       </div>
+
+      {/* Verification CTA — visible top-of-list when the user is not yet
+          verified, so it doesn't get lost below Earnings / Settings. */}
+      {hasNoVerification && (
+        <div className="p-4 border-b border-surface-800">
+          <Link
+            href="/app/profile/verification"
+            className="flex items-center gap-3 p-4 rounded-xl border border-brand-500/40 bg-brand-500/10 hover:bg-brand-500/15 transition-colors"
+          >
+            <ShieldCheck className="w-5 h-5 text-brand-400 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-white font-medium text-sm">Get verified</p>
+              <p className="text-surface-400 text-xs">Submit your Cyprus taxi licence to post and accept legs.</p>
+            </div>
+          </Link>
+        </div>
+      )}
+      {isRejected && (
+        <div className="p-4 border-b border-surface-800">
+          <Link
+            href="/app/profile/verification"
+            className="flex items-center gap-3 p-4 rounded-xl border border-red-900/50 bg-red-950/30 hover:bg-red-950/50 transition-colors"
+          >
+            <ShieldAlert className="w-5 h-5 text-red-400 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-white font-medium text-sm">Verification rejected</p>
+              <p className="text-surface-400 text-xs">Tap to view the reason and next steps.</p>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Links */}
       <div className="p-4 space-y-1">
