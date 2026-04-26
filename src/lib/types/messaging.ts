@@ -14,7 +14,11 @@ export type NotificationType =
   | 'counter_offer_response'
   | 'departure_reminder'
   | 'new_leg_in_district'
-  | 'system';
+  | 'system'
+  | 'handoff_proposed'
+  | 'handoff_accepted'
+  | 'handoff_declined'
+  | 'handoff_expired';
 
 export interface Message {
   id: string;

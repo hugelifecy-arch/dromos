@@ -46,6 +46,7 @@ grouped by strategy pillar:
 | Hotel concierge portal + embed widget | `014_concierge_tenants.sql`, `src/lib/services/concierge/*`, `src/app/api/concierge/*`, `src/app/concierge/*` | 15 |
 | JCC Payments (Cyprus domestic processor) | `015_jcc_payments.sql`, `src/lib/services/jcc/*`, `src/app/api/payments/jcc/*`, picker on `src/app/app/upgrade/page.tsx` | 16 |
 | Tax / VAT export dashboard (quarterly SI + GESY + VAT) | `016_tax_exports.sql`, `src/lib/services/tax/*`, `src/app/api/tax/export`, `src/app/app/earnings/tax` | 17 |
+| Peer-handoff (Συνάδελφος) — trust graph + propose/accept/decline lifecycle | `017_peer_handoff.sql`, `src/lib/services/peer-handoff/*`, `src/app/api/handoff/*`, `src/app/api/trusted-drivers`, `src/app/app/handoff/[legId]`, `src/app/app/profile/trusted-drivers` | 18 |
 
 ### 1.3 Operational posture
 
@@ -61,11 +62,12 @@ grouped by strategy pillar:
   CHECK that `asking/quoted price <= pricing_ceiling_eur`.
 - **Claude prompt caching** is on for the extraction path; new Claude
   callers should follow the same shape (see §7).
-- **Test suite**: 127 service-level tests running via `npx tsx`, covering
+- **Test suite**: 166 service-level tests running via `npx tsx`, covering
   pricing (17), WhatsApp parser (23), voice pipeline (7), Twilio signature
   (7), district resolver (4), Claude extraction (8), flight matcher (9),
   flight-match service (4), heatmap tiles (7), tenant scope (7), JCC
-  signature (10), JCC gateway (7), tax compute (11), tax serialise (6).
+  signature (10), JCC gateway (7), tax compute (11), tax serialise (6),
+  unit-econ model (13), peer-handoff service (26).
 
 ---
 
@@ -110,8 +112,15 @@ below is a concrete engineering deliverable.
 
 ### 2.3 Lower-priority gaps (Q4+)
 
-10. **"Συνάδελφος" peer-handoff flow** — pass a confirmed booking to a
-    trusted colleague when a previous fare runs late.
+10. ✅ **"Συνάδελφος" peer-handoff flow** — closed by S18. Trust graph
+    (`trusted_driver_links`), proposal lifecycle (`handoff_proposals`),
+    `empty_legs.handed_off_from / handed_off_at` audit columns, four new
+    notification types, and `/app/handoff/[legId]` +
+    `/app/profile/trusted-drivers` UI. Pricing and money flow stay
+    untouched — settlement is off-platform between colleagues by
+    convention. 26 service-level tests cover the propose/accept/decline/
+    cancel/expire lifecycle including trust-revocation and concurrent-
+    handoff races.
 11. **Off-season commuter pivot** — Nicosia ↔ Limassol recurring subscription
     commuter product for Nov–Mar.
 12. **Union (ΠΑΣΙΟΑ) referral / endorsement rails** — coded referral codes,
@@ -384,7 +393,7 @@ block on credential availability.
 | 15 | Hotel concierge portal skeleton + embed widget | ✅ shipped (request-first bookings; quote-only embed until captcha + rate-limit land) | Tenant model, pricing service |
 | 16 | JCC Payments integration | ✅ shipped dark (`JCC_ENABLED=false` until merchant account + production secret land; `/app/upgrade` Stripe/JCC picker wired) | JCC merchant account |
 | 17 | Tax / VAT export dashboard v1 | ✅ shipped (CSV live; XML uses `schema="placeholder-v1"` until TAXISnet field map reconciled through a first real filing) | Earnings data, 6 months of real listings |
-| 18 | Peer-handoff flow | planned | Trusted-driver graph (new) |
+| 18 | Peer-handoff flow (Συνάδελφος) | ✅ shipped | — |
 | 19 | RU/HE/DE localisation of passenger booking page | planned | — |
 | 20 | Off-season commuter subscription product | planned | — |
 

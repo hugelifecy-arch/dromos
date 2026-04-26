@@ -41,6 +41,8 @@ credential lands and you need to flip a switch without regressing anything.
 | `JCC_SECRET` | — | JCC onboarding | HMAC-SHA256 signing key |
 | `JCC_GATEWAY_URL` | `https://gateway-test.jcc.com.cy/payment/Payment` | JCC | Swap to production URL on go-live |
 | `JCC_RETURN_URL` | — | ops | Public URL of `/api/payments/jcc/callback` — must be exact, no trailing slash |
+| **S18 Peer-handoff expiry cron** | | | |
+| `HANDOFF_EXPIRE_CRON_SECRET` | — | ops | Bearer token the scheduler sends on `/api/handoff/expire-stale`; if unset, the route returns 503 (refuses to run unsecured) |
 
 Vars not listed here (cookie secrets, NextAuth URLs, etc.) are covered by
 the standard Vercel deployment guide.

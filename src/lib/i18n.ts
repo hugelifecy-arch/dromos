@@ -127,6 +127,47 @@ const translations = {
     en: 'Cyprus-owned, Cyprus-made. Your data stays here.',
   },
   'landing.cta': { el: 'Ξεκίνα τώρα', en: 'Get Started' },
+
+  // Peer handoff (Sprint 18 — Συνάδελφος feature). A confirmed leg is
+  // passed from one trusted driver to another when the previous fare runs
+  // late. Money flow stays off-platform.
+  'handoff.title': { el: 'Συνάδελφος', en: 'Peer handoff' },
+  'handoff.propose_button': { el: 'Ανέθεσε σε συνάδελφο', en: 'Hand off to a colleague' },
+  'handoff.choose_partner': { el: 'Διάλεξε συνάδελφο', en: 'Choose colleague' },
+  'handoff.send_proposal': { el: 'Στείλε πρόταση', en: 'Send proposal' },
+  'handoff.optional_message': { el: 'Προαιρετικό μήνυμα', en: 'Optional message' },
+  'handoff.proposed_to_you': {
+    el: 'Σου προτάθηκε ανάθεση από συνάδελφο',
+    en: 'A trusted colleague proposed a handoff to you',
+  },
+  'handoff.accepted_by': {
+    el: 'Ο συνάδελφος αποδέχθηκε την ανάθεση',
+    en: 'Your colleague accepted the handoff',
+  },
+  'handoff.declined_by': {
+    el: 'Ο συνάδελφος αρνήθηκε την ανάθεση',
+    en: 'Your colleague declined the handoff',
+  },
+  'handoff.expired': {
+    el: 'Η πρόταση έληξε χωρίς απάντηση',
+    en: 'The proposal expired with no response',
+  },
+  'handoff.expires_note': {
+    el: 'Οι προτάσεις λήγουν μετά από 30 λεπτά αν δεν απαντήσει ο συνάδελφος.',
+    en: 'Proposals expire after 30 minutes if your colleague does not respond.',
+  },
+
+  // Trusted-drivers list (the trust graph behind handoff).
+  'trusted_drivers.title': { el: 'Έμπιστοι συνάδελφοι', en: 'Trusted colleagues' },
+  'trusted_drivers.add': { el: 'Πρόσθεσε συνάδελφο', en: 'Add colleague' },
+  'trusted_drivers.empty': {
+    el: 'Δεν έχεις προσθέσει έμπιστους συναδέλφους ακόμη.',
+    en: 'You haven’t added any trusted colleagues yet.',
+  },
+  'trusted_drivers.one_way_note': {
+    el: 'Η εμπιστοσύνη είναι μονόδρομη: όποιον προσθέσεις εδώ μπορείς να του αναθέσεις σκέλος, αλλά δεν μπορεί αυτόματα να σου αναθέσει σε σένα.',
+    en: 'Trust is one-way: you can hand off to anyone in this list, but they can’t automatically hand off to you.',
+  },
 } as const;
 
 type TranslationKey = keyof typeof translations;
