@@ -11,7 +11,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Users, Check, X, Send } from 'lucide-react';
+import { ArrowLeft, Users, Check, X, Send, MapPin, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { createClient } from '@/lib/supabase-browser';
 
 interface TrustedRow {
   trusted_id: string;
@@ -23,6 +25,17 @@ interface TrustedRow {
   } | null;
 }
 
+interface LegSummary {
+  id: string;
+  origin: string;
+  destination: string;
+  departure_datetime: string;
+  asking_price: number;
+  status: string;
+  passenger_count: number | null;
+  has_passenger: boolean;
+}
+
 export default function HandoffPage() {
   const params = useParams();
   const router = useRouter();
@@ -31,6 +44,7 @@ export default function HandoffPage() {
     : Array.isArray(params?.legId) ? params.legId[0] : '';
 
   const [trusted, setTrusted] = useState<TrustedRow[]>([]);
+  const [leg, setLeg] = useState<LegSummary | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -46,9 +60,19 @@ export default function HandoffPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/trusted-drivers');
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'Failed to load trusted drivers');
+      // Fetch leg summary + trusted-drivers list in parallel.
+      const supabase = createClient();
+      const [legResult, trustedRes] = await Promise.all([
+        supabase
+          .from('empty_legs')
+          .select('id, origin, destination, departure_datetime, asking_price, status, passenger_count, has_passenger')
+          .eq('id', legId)
+          .maybeSingle(),
+        fetch('/api/trusted-drivers'),
+      ]);
+      if (legResult.data) setLeg(legResult.data as LegSummary);
+      const body = await trustedRes.json();
+      if (!trustedRes.ok) throw new Error(body.error || 'Failed to load trusted drivers');
       setTrusted(body.trusted as TrustedRow[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Network error');
@@ -92,6 +116,40 @@ export default function HandoffPage() {
       </header>
 
       <main className="px-4 py-6 space-y-6">
+        {/* Leg context — what you're handing off. Hidden during initial load
+            so the page doesn't render an empty card. */}
+        {leg && (
+          <div className="rounded-xl border border-surface-800 bg-surface-900 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="flex flex-col items-center gap-1 pt-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-brand-400" />
+                <div className="w-px h-6 bg-surface-700" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              </div>
+              <div className="flex-1 space-y-2 min-w-0">
+                <div className="text-white font-medium truncate">{leg.origin}</div>
+                <div className="text-white font-medium truncate">{leg.destination}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-sm text-surface-400 pt-2 border-t border-surface-800">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                {format(new Date(leg.departure_datetime), 'EEE d MMM, HH:mm')}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5" />
+                €{Number(leg.asking_price).toFixed(2)}
+              </span>
+              {leg.has_passenger && leg.passenger_count && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  {leg.passenger_count}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="text-surface-300 text-sm">
           Hand this booking to a trusted colleague. They keep the passenger; the
           fare stays with you (settle off-platform).

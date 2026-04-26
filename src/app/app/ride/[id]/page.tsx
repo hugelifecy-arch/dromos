@@ -170,7 +170,42 @@ export default async function LegDetailPage({ params }: { params: Promise<{ id: 
           <span className="text-surface-400">Asking Price</span>
           <span className="text-3xl font-bold text-white">&euro;{Number(leg.asking_price).toFixed(2)}</span>
         </div>
-        <p className="text-xs text-surface-400">
+
+        {/* Regulatory transparency — visible only when the seller posted with
+            both endpoints resolvable to a tariff row. Older / cross-district
+            posts (where the meter lookup failed) leave these null and we
+            simply hide the block. The DB CHECK is still the legal backstop. */}
+        {leg.regulated_meter_reference_eur != null && (
+          <div className="mt-3 rounded-xl bg-surface-900 border border-surface-800 p-3 space-y-1.5 text-xs">
+            <div className="flex items-center justify-between text-surface-400">
+              <span>Regulated meter reference</span>
+              <span className="text-surface-200">€{Number(leg.regulated_meter_reference_eur).toFixed(2)}</span>
+            </div>
+            {leg.pricing_floor_eur != null && (
+              <div className="flex items-center justify-between text-surface-400">
+                <span>Floor (40%)</span>
+                <span className="text-surface-200">€{Number(leg.pricing_floor_eur).toFixed(2)}</span>
+              </div>
+            )}
+            {leg.pricing_ceiling_eur != null && (
+              <div className="flex items-center justify-between text-surface-400">
+                <span>Ceiling (90%, legal cap)</span>
+                <span className="text-surface-200">€{Number(leg.pricing_ceiling_eur).toFixed(2)}</span>
+              </div>
+            )}
+            {leg.pricing_discount_pct != null && Number(leg.pricing_discount_pct) > 0 && (
+              <div className="flex items-center justify-between pt-1 border-t border-surface-800 text-emerald-400">
+                <span>Driver discount</span>
+                <span>−{Number(leg.pricing_discount_pct).toFixed(0)}%</span>
+              </div>
+            )}
+            <p className="text-[10px] text-surface-500 pt-1.5">
+              Discount-voucher framing under the 2006 Motor Transport Law. Asking price stays inside the regulated band.
+            </p>
+          </div>
+        )}
+
+        <p className="text-xs text-surface-400 mt-3">
           If this leg includes a passenger fare, you collect that from the passenger directly. The asking price goes to the seller.
         </p>
       </div>
