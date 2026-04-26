@@ -6,6 +6,7 @@ import { Bell, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import MarkReadButton from './MarkReadButton';
+import HandoffActions from './HandoffActions';
 
 const NOTIFICATION_ICONS: Record<string, string> = {
   leg_claimed: '🤝',
@@ -18,6 +19,10 @@ const NOTIFICATION_ICONS: Record<string, string> = {
   departure_reminder: '⏰',
   new_leg_in_district: '📍',
   system: '📋',
+  handoff_proposed: '🤲',
+  handoff_accepted: '✅',
+  handoff_declined: '🙅',
+  handoff_expired: '⌛',
 };
 
 function getNotificationLink(data: Record<string, unknown>): string {
@@ -58,6 +63,8 @@ export default async function NotificationsPage() {
         {notifications?.map((notif) => {
           const icon = NOTIFICATION_ICONS[notif.type] || '🔔';
           const link = getNotificationLink(notif.data || {});
+          const data = (notif.data ?? {}) as Record<string, unknown>;
+          const isHandoffProposal = notif.type === 'handoff_proposed' && typeof data.proposal_id === 'string';
 
           return (
             <Link key={notif.id} href={link}>
@@ -74,7 +81,10 @@ export default async function NotificationsPage() {
                     {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
                   </time>
                 </div>
-                {!notif.is_read && (
+                {isHandoffProposal && (
+                  <HandoffActions proposalId={data.proposal_id as string} />
+                )}
+                {!notif.is_read && !isHandoffProposal && (
                   <div className="w-2 h-2 bg-brand-500 rounded-full flex-shrink-0 mt-2" />
                 )}
               </div>

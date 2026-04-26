@@ -3,7 +3,7 @@ export const metadata = { title: 'Profile' };
 
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
-import { Star, Car, Calendar, Settings, LogOut, TrendingUp, ChevronDown } from 'lucide-react';
+import { Star, Car, Calendar, Settings, LogOut, TrendingUp, ChevronDown, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { AVATAR_PLACEHOLDER } from '@/lib/constants';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
@@ -127,6 +127,10 @@ export default async function ProfilePage() {
         <Link href="/app/earnings" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-900 transition-colors text-surface-300">
           <TrendingUp className="w-5 h-5 text-surface-500" />
           <span>Earnings</span>
+        </Link>
+        <Link href="/app/profile/trusted-drivers" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-900 transition-colors text-surface-300">
+          <Users className="w-5 h-5 text-surface-500" />
+          <span>Trusted colleagues</span>
         </Link>
         <Link href="/app/settings" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-900 transition-colors text-surface-300">
           <Settings className="w-5 h-5 text-surface-500" />

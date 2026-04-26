@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase-server';
 import { notFound, redirect } from 'next/navigation';
-import { ArrowLeft, Clock, Users, Star, Luggage, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Star, Luggage, MessageCircle, UserPlus, ArrowRightLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { AVATAR_PLACEHOLDER } from '@/lib/constants';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
@@ -347,7 +347,37 @@ export default async function LegDetailPage({ params }: { params: Promise<{ id: 
             </p>
           </div>
         )}
+
+        {/* Συνάδελφος — buyer of a confirmed, not-yet-handed-off leg can pass
+            the booking to a trusted colleague when running late. Money flow
+            stays off-platform; this just records the swap. */}
+        {isBuyer && isConfirmed && !leg.handed_off_from && (
+          <Link
+            href={`/app/handoff/${id}`}
+            className="w-full flex items-center justify-center gap-2 bg-surface-800 hover:bg-surface-700 text-white font-medium py-3 rounded-xl transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            Hand off to a colleague
+          </Link>
+        )}
       </div>
+
+      {/* Handed-off badge — visible to all parties on the leg detail page so
+          there's no confusion about who's actually picking up the passenger. */}
+      {leg.handed_off_from && (
+        <div className="px-4 pb-4">
+          <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-amber-950/30 border border-amber-900/50 text-amber-200 text-sm">
+            <ArrowRightLeft className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              Handed off
+              {leg.handed_off_at && (
+                <> on {format(new Date(leg.handed_off_at), 'MMM d, HH:mm')}</>
+              )}
+              .
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
