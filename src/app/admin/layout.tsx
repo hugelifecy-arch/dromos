@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { APP_NAME } from '@/lib/constants';
-import { LayoutDashboard, Users, Car, CreditCard, BarChart3, ShieldCheck, Flag } from 'lucide-react';
+import { LayoutDashboard, Users, Car, CreditCard, BarChart3, ShieldCheck, Flag, Building2 } from 'lucide-react';
 
 const adminNav = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/admin/users', icon: Users, label: 'Users' },
   { href: '/admin/verifications', icon: ShieldCheck, label: 'Verifications' },
+  { href: '/admin/tenants', icon: Building2, label: 'Tenants' },
   { href: '/admin/rides', icon: Car, label: 'Rides' },
   { href: '/admin/reports', icon: Flag, label: 'Reports' },
   { href: '/admin/subscriptions', icon: CreditCard, label: 'Subscriptions' },
